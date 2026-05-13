@@ -13,11 +13,11 @@ public class ClinicaConfiguration : IEntityTypeConfiguration<Clinica>
         builder.HasKey(c => c.Id);
 
         builder.Property(c => c.Id)
-            .HasColumnName("ID");
+            .HasColumnName("ID_CLINICA");
 
         builder.Property(c => c.Nome)
             .HasColumnName("NOME")
-            .HasMaxLength(120)
+            .HasMaxLength(100)
             .IsRequired();
 
         builder.Property(c => c.Cnpj)
@@ -25,28 +25,25 @@ public class ClinicaConfiguration : IEntityTypeConfiguration<Clinica>
             .HasMaxLength(18)
             .IsRequired();
 
-        builder.Property(c => c.Endereco)
-            .HasColumnName("ENDERECO")
-            .HasMaxLength(200)
-            .IsRequired();
+        builder.Property(c => c.Email)
+            .HasColumnName("EMAIL")
+            .HasMaxLength(100);
 
         builder.Property(c => c.Telefone)
             .HasColumnName("TELEFONE")
-            .HasMaxLength(20)
-            .IsRequired();
+            .HasMaxLength(20);
 
-        builder.Property(c => c.Email)
-            .HasColumnName("EMAIL")
-            .HasMaxLength(120)
-            .IsRequired();
+        builder.Property(c => c.Endereco)
+            .HasColumnName("ENDERECO")
+            .HasMaxLength(200);
 
-        builder.Property(c => c.DataCadastro)
-            .HasColumnName("DATA_CADASTRO")
-            .IsRequired();
-
-        builder.Property(c => c.Ativa)
-            .HasColumnName("ATIVA")
-            .HasConversion<int>()
+        builder.Property(c => c.Ativo)
+            .HasColumnName("ATIVO")
+            .HasConversion(
+                ativo => ativo ? "S" : "N",
+                valor => valor == "S"
+            )
+            .HasMaxLength(1)
             .IsRequired();
 
         builder.HasIndex(c => c.Cnpj)

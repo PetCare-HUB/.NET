@@ -89,13 +89,15 @@ namespace PetCareHub.Infrastructure.Persistence.Migrations
                     b.Property<long>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("NUMBER(19)")
-                        .HasColumnName("ID");
+                        .HasColumnName("ID_CLINICA");
 
                     OraclePropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("Id"));
 
-                    b.Property<int>("Ativa")
-                        .HasColumnType("NUMBER(10)")
-                        .HasColumnName("ATIVA");
+                    b.Property<string>("Ativo")
+                        .IsRequired()
+                        .HasMaxLength(1)
+                        .HasColumnType("NVARCHAR2(1)")
+                        .HasColumnName("ATIVO");
 
                     b.Property<string>("Cnpj")
                         .IsRequired()
@@ -103,30 +105,23 @@ namespace PetCareHub.Infrastructure.Persistence.Migrations
                         .HasColumnType("NVARCHAR2(18)")
                         .HasColumnName("CNPJ");
 
-                    b.Property<DateTime>("DataCadastro")
-                        .HasColumnType("TIMESTAMP(7)")
-                        .HasColumnName("DATA_CADASTRO");
-
                     b.Property<string>("Email")
-                        .IsRequired()
-                        .HasMaxLength(120)
-                        .HasColumnType("NVARCHAR2(120)")
+                        .HasMaxLength(100)
+                        .HasColumnType("NVARCHAR2(100)")
                         .HasColumnName("EMAIL");
 
                     b.Property<string>("Endereco")
-                        .IsRequired()
                         .HasMaxLength(200)
                         .HasColumnType("NVARCHAR2(200)")
                         .HasColumnName("ENDERECO");
 
                     b.Property<string>("Nome")
                         .IsRequired()
-                        .HasMaxLength(120)
-                        .HasColumnType("NVARCHAR2(120)")
+                        .HasMaxLength(100)
+                        .HasColumnType("NVARCHAR2(100)")
                         .HasColumnName("NOME");
 
                     b.Property<string>("Telefone")
-                        .IsRequired()
                         .HasMaxLength(20)
                         .HasColumnType("NVARCHAR2(20)")
                         .HasColumnName("TELEFONE");

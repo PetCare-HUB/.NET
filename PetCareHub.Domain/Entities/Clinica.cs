@@ -8,15 +8,13 @@ public class Clinica
 
     public string Cnpj { get; set; } = string.Empty;
 
-    public string Endereco { get; set; } = string.Empty;
+    public string? Email { get; set; }
 
-    public string Telefone { get; set; } = string.Empty;
+    public string? Telefone { get; set; }
 
-    public string Email { get; set; } = string.Empty;
+    public string? Endereco { get; set; }
 
-    public DateTime DataCadastro { get; set; } = DateTime.UtcNow;
-
-    public bool Ativa { get; set; } = true;
+    public bool Ativo { get; set; } = true;
 
     public ICollection<Pet> Pets { get; set; } = new List<Pet>();
 

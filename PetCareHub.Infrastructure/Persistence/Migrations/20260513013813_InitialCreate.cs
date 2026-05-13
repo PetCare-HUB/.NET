@@ -15,19 +15,18 @@ namespace PetCareHub.Infrastructure.Persistence.Migrations
                 name: "CLINICA",
                 columns: table => new
                 {
-                    ID = table.Column<long>(type: "NUMBER(19)", nullable: false)
+                    ID_CLINICA = table.Column<long>(type: "NUMBER(19)", nullable: false)
                         .Annotation("Oracle:Identity", "START WITH 1 INCREMENT BY 1"),
-                    NOME = table.Column<string>(type: "NVARCHAR2(120)", maxLength: 120, nullable: false),
+                    NOME = table.Column<string>(type: "NVARCHAR2(100)", maxLength: 100, nullable: false),
                     CNPJ = table.Column<string>(type: "NVARCHAR2(18)", maxLength: 18, nullable: false),
-                    ENDERECO = table.Column<string>(type: "NVARCHAR2(200)", maxLength: 200, nullable: false),
-                    TELEFONE = table.Column<string>(type: "NVARCHAR2(20)", maxLength: 20, nullable: false),
-                    EMAIL = table.Column<string>(type: "NVARCHAR2(120)", maxLength: 120, nullable: false),
-                    DATA_CADASTRO = table.Column<DateTime>(type: "TIMESTAMP(7)", nullable: false),
-                    ATIVA = table.Column<int>(type: "NUMBER(10)", nullable: false)
+                    EMAIL = table.Column<string>(type: "NVARCHAR2(100)", maxLength: 100, nullable: true),
+                    TELEFONE = table.Column<string>(type: "NVARCHAR2(20)", maxLength: 20, nullable: true),
+                    ENDERECO = table.Column<string>(type: "NVARCHAR2(200)", maxLength: 200, nullable: true),
+                    ATIVO = table.Column<string>(type: "NVARCHAR2(1)", maxLength: 1, nullable: false)
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_CLINICA", x => x.ID);
+                    table.PrimaryKey("PK_CLINICA", x => x.ID_CLINICA);
                 });
 
             migrationBuilder.CreateTable(
@@ -54,7 +53,7 @@ namespace PetCareHub.Infrastructure.Persistence.Migrations
                         name: "FK_PET_CLINICA_CLINICA_ID",
                         column: x => x.CLINICA_ID,
                         principalTable: "CLINICA",
-                        principalColumn: "ID",
+                        principalColumn: "ID_CLINICA",
                         onDelete: ReferentialAction.Restrict);
                 });
 
@@ -79,7 +78,7 @@ namespace PetCareHub.Infrastructure.Persistence.Migrations
                         name: "FK_CONSULTA_CLINICA_CLINICA_ID",
                         column: x => x.CLINICA_ID,
                         principalTable: "CLINICA",
-                        principalColumn: "ID",
+                        principalColumn: "ID_CLINICA",
                         onDelete: ReferentialAction.Restrict);
                     table.ForeignKey(
                         name: "FK_CONSULTA_PET_PET_ID",
