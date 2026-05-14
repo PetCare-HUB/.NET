@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using PetCareHub.Domain.Entities;
 using PetCareHub.Infrastructure.Persistence;
 
 namespace PetCareHub.API.Controllers;
@@ -20,6 +21,17 @@ public class ClinicasController : ControllerBase
     {
         var clinicas = await _context.Clinicas
             .AsNoTracking()
+            .OrderBy(c => c.Nome)
+            .Select(c => new
+            {
+                c.Id,
+                c.Nome,
+                c.Cnpj,
+                c.Email,
+                c.Telefone,
+                c.Endereco,
+                c.Ativo
+            })
             .ToListAsync();
 
         return Ok(clinicas);
@@ -30,7 +42,18 @@ public class ClinicasController : ControllerBase
     {
         var clinica = await _context.Clinicas
             .AsNoTracking()
-            .FirstOrDefaultAsync(c => c.Id == id);
+            .Where(c => c.Id == id)
+            .Select(c => new
+            {
+                c.Id,
+                c.Nome,
+                c.Cnpj,
+                c.Email,
+                c.Telefone,
+                c.Endereco,
+                c.Ativo
+            })
+            .FirstOrDefaultAsync();
 
         if (clinica is null)
         {
@@ -42,4 +65,163 @@ public class ClinicasController : ControllerBase
 
         return Ok(clinica);
     }
+
+    [HttpPost]
+    public async Task<IActionResult> Create([FromBody] ClinicaCreateRequest request)
+    {
+        if (string.IsNullOrWhiteSpace(request.Nome))
+        {
+            return BadRequest(new { mensagem = "O nome da clínica é obrigatório." });
+        }
+
+        if (string.IsNullOrWhiteSpace(request.Cnpj))
+        {
+            return BadRequest(new { mensagem = "O CNPJ da clínica é obrigatório." });
+        }
+
+        var cnpjJaExiste = await _context.Clinicas
+            .AsNoTracking()
+            .CountAsync(c => c.Cnpj == request.Cnpj);
+
+        if (cnpjJaExiste > 0)
+        {
+            return BadRequest(new { mensagem = "Já existe uma clínica cadastrada com este CNPJ." });
+        }
+
+        var proximoId = await _context.Clinicas
+            .Select(c => (long?)c.Id)
+            .MaxAsync() ?? 0;
+
+        var clinica = new Clinica
+        {
+            Id = proximoId + 1,
+            Nome = request.Nome.Trim(),
+            Cnpj = request.Cnpj.Trim(),
+            Email = request.Email?.Trim(),
+            Telefone = request.Telefone?.Trim(),
+            Endereco = request.Endereco?.Trim(),
+            Ativo = true
+        };
+
+        _context.Clinicas.Add(clinica);
+        await _context.SaveChangesAsync();
+
+        return CreatedAtAction(
+            nameof(GetById),
+            new { id = clinica.Id },
+            new
+            {
+                clinica.Id,
+                clinica.Nome,
+                clinica.Cnpj,
+                clinica.Email,
+                clinica.Telefone,
+                clinica.Endereco,
+                clinica.Ativo
+            }
+        );
+    }
+
+    [HttpPut("{id:long}")]
+    public async Task<IActionResult> Update(long id, [FromBody] ClinicaUpdateRequest request)
+    {
+        var clinica = await _context.Clinicas
+            .FirstOrDefaultAsync(c => c.Id == id);
+
+        if (clinica is null)
+        {
+            return NotFound(new
+            {
+                mensagem = $"Clínica com id {id} não encontrada."
+            });
+        }
+
+        if (string.IsNullOrWhiteSpace(request.Nome))
+        {
+            return BadRequest(new { mensagem = "O nome da clínica é obrigatório." });
+        }
+
+        if (string.IsNullOrWhiteSpace(request.Cnpj))
+        {
+            return BadRequest(new { mensagem = "O CNPJ da clínica é obrigatório." });
+        }
+
+        var cnpjJaExisteEmOutraClinica = await _context.Clinicas
+            .AsNoTracking()
+            .CountAsync(c => c.Cnpj == request.Cnpj && c.Id != id);
+
+        if (cnpjJaExisteEmOutraClinica > 0)
+        {
+            return BadRequest(new { mensagem = "Já existe outra clínica cadastrada com este CNPJ." });
+        }
+
+        clinica.Nome = request.Nome.Trim();
+        clinica.Cnpj = request.Cnpj.Trim();
+        clinica.Email = request.Email?.Trim();
+        clinica.Telefone = request.Telefone?.Trim();
+        clinica.Endereco = request.Endereco?.Trim();
+        clinica.Ativo = request.Ativo;
+
+        await _context.SaveChangesAsync();
+
+        return Ok(new
+        {
+            clinica.Id,
+            clinica.Nome,
+            clinica.Cnpj,
+            clinica.Email,
+            clinica.Telefone,
+            clinica.Endereco,
+            clinica.Ativo
+        });
+    }
+
+    [HttpDelete("{id:long}")]
+    public async Task<IActionResult> Delete(long id)
+    {
+        var clinica = await _context.Clinicas
+            .FirstOrDefaultAsync(c => c.Id == id);
+
+        if (clinica is null)
+        {
+            return NotFound(new
+            {
+                mensagem = $"Clínica com id {id} não encontrada."
+            });
+        }
+
+        var quantidadePets = await _context.Pets
+            .AsNoTracking()
+            .CountAsync(p => p.ClinicaId == id);
+
+        if (quantidadePets > 0)
+        {
+            return BadRequest(new
+            {
+                mensagem = "Não é possível remover a clínica porque existem pets vinculados a ela."
+            });
+        }
+
+        _context.Clinicas.Remove(clinica);
+        await _context.SaveChangesAsync();
+
+        return NoContent();
+    }
 }
+
+public record ClinicaCreateRequest(
+    string Nome,
+    string Cnpj,
+    string? Email,
+    string? Telefone,
+    string? Endereco
+);
+
+public record ClinicaUpdateRequest(
+    string Nome,
+    string Cnpj,
+    string? Email,
+    string? Telefone,
+    string? Endereco,
+    bool Ativo
+);
