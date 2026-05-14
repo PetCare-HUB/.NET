@@ -261,26 +261,6 @@ Esse comando deve ser usado apenas em um schema vazio ou ambiente novo.
 
 ## Endpoints Disponíveis
 
-## Health
-
-### Verificar status da API
-
-```http
-GET /api/Health
-```
-
-Retorno esperado:
-
-```json
-{
-  "status": "API PetCare Hub está rodando",
-  "ambiente": "Development",
-  "dataHora": "2026-05-13T22:00:00"
-}
-```
-
----
-
 # Clínicas
 
 ## Listar clínicas

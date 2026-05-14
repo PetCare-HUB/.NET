@@ -26,4 +26,5 @@ Thumbs.db
 *.log
 
 # Configurações locais com credenciais
-appsettings.Development.json
+**/appsettings.Development.json
+**/appsettings.Local.json
