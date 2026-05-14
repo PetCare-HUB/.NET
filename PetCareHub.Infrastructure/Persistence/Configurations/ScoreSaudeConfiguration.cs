@@ -13,14 +13,34 @@ public class ScoreSaudeConfiguration : IEntityTypeConfiguration<ScoreSaude>
         builder.HasKey(s => s.Id);
 
         builder.Property(s => s.Id)
-            .HasColumnName("ID");
+            .HasColumnName("ID_SCORE");
 
         builder.Property(s => s.PetId)
-            .HasColumnName("PET_ID")
+            .HasColumnName("ID_PET")
             .IsRequired();
 
         builder.Property(s => s.ScoreTotal)
             .HasColumnName("SCORE_TOTAL")
+            .IsRequired();
+
+        builder.Property(s => s.ScoreAtividade)
+            .HasColumnName("SCORE_ATIVIDADE")
+            .IsRequired();
+
+        builder.Property(s => s.ScoreAlimentacao)
+            .HasColumnName("SCORE_ALIMENTACAO")
+            .IsRequired();
+
+        builder.Property(s => s.ScoreAmbiente)
+            .HasColumnName("SCORE_AMBIENTE")
+            .IsRequired();
+
+        builder.Property(s => s.ScoreConsulta)
+            .HasColumnName("SCORE_CONSULTA")
+            .IsRequired();
+
+        builder.Property(s => s.ScorePreventivo)
+            .HasColumnName("SCORE_PREVENTIVO")
             .IsRequired();
 
         builder.Property(s => s.Categoria)
@@ -31,10 +51,6 @@ public class ScoreSaudeConfiguration : IEntityTypeConfiguration<ScoreSaude>
         builder.Property(s => s.DataCalculo)
             .HasColumnName("DATA_CALCULO")
             .IsRequired();
-
-        builder.Property(s => s.Observacao)
-            .HasColumnName("OBSERVACAO")
-            .HasMaxLength(500);
 
         builder.HasOne(s => s.Pet)
             .WithMany(p => p.ScoresSaude)

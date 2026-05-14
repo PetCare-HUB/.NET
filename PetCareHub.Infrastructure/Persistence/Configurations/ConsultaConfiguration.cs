@@ -13,14 +13,14 @@ public class ConsultaConfiguration : IEntityTypeConfiguration<Consulta>
         builder.HasKey(c => c.Id);
 
         builder.Property(c => c.Id)
-            .HasColumnName("ID");
+            .HasColumnName("ID_CONSULTA");
 
         builder.Property(c => c.PetId)
-            .HasColumnName("PET_ID")
+            .HasColumnName("ID_PET")
             .IsRequired();
 
         builder.Property(c => c.ClinicaId)
-            .HasColumnName("CLINICA_ID")
+            .HasColumnName("ID_CLINICA")
             .IsRequired();
 
         builder.Property(c => c.DataConsulta)
@@ -29,22 +29,32 @@ public class ConsultaConfiguration : IEntityTypeConfiguration<Consulta>
 
         builder.Property(c => c.TipoConsulta)
             .HasColumnName("TIPO_CONSULTA")
-            .HasMaxLength(30)
+            .HasMaxLength(50)
             .IsRequired();
 
-        builder.Property(c => c.Observacoes)
-            .HasColumnName("OBSERVACOES")
-            .HasMaxLength(1000);
+        builder.Property(c => c.Descricao)
+            .HasColumnName("DESCRICAO")
+            .HasMaxLength(500);
+
+        builder.Property(c => c.Diagnostico)
+            .HasColumnName("DIAGNOSTICO")
+            .HasMaxLength(500);
 
         builder.Property(c => c.Valor)
             .HasColumnName("VALOR")
-            .HasPrecision(10, 2)
-            .IsRequired();
+            .HasPrecision(10, 2);
 
         builder.Property(c => c.RetornoRecomendado)
             .HasColumnName("RETORNO_RECOMENDADO")
-            .HasConversion<int>()
+            .HasConversion(
+                retorno => retorno ? "S" : "N",
+                valor => valor == "S"
+            )
+            .HasMaxLength(1)
             .IsRequired();
+
+        builder.Property(c => c.DataRetorno)
+            .HasColumnName("DATA_RETORNO");
 
         builder.HasOne(c => c.Pet)
             .WithMany(p => p.Consultas)

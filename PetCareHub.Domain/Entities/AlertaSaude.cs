@@ -6,17 +6,21 @@ public class AlertaSaude
 
     public long PetId { get; set; }
 
-    public long? LeituraSensorId { get; set; }
+    public long? LeituraId { get; set; }
 
     public string TipoAlerta { get; set; } = string.Empty;
 
-    public string Descricao { get; set; } = string.Empty;
+    public string NivelAlerta { get; set; } = string.Empty;
 
-    public string Nivel { get; set; } = string.Empty;
+    public string Mensagem { get; set; } = string.Empty;
+
+    public decimal? ValorDetectado { get; set; }
+
+    public decimal? LimiteReferencia { get; set; }
 
     public bool Resolvido { get; set; }
 
-    public DateTime DataAlerta { get; set; } = DateTime.UtcNow;
+    public DateTime DataAlerta { get; set; }
 
     public DateTime? DataResolucao { get; set; }
 

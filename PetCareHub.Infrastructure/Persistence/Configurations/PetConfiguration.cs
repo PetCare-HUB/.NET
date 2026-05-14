@@ -13,14 +13,14 @@ public class PetConfiguration : IEntityTypeConfiguration<Pet>
         builder.HasKey(p => p.Id);
 
         builder.Property(p => p.Id)
-            .HasColumnName("ID");
+            .HasColumnName("ID_PET");
 
         builder.Property(p => p.TutorId)
-            .HasColumnName("TUTOR_ID")
+            .HasColumnName("ID_TUTOR")
             .IsRequired();
 
         builder.Property(p => p.ClinicaId)
-            .HasColumnName("CLINICA_ID")
+            .HasColumnName("ID_CLINICA")
             .IsRequired();
 
         builder.Property(p => p.Nome)
@@ -30,35 +30,40 @@ public class PetConfiguration : IEntityTypeConfiguration<Pet>
 
         builder.Property(p => p.Especie)
             .HasColumnName("ESPECIE")
-            .HasMaxLength(20)
+            .HasMaxLength(50)
             .IsRequired();
 
         builder.Property(p => p.Raca)
             .HasColumnName("RACA")
-            .HasMaxLength(80)
+            .HasMaxLength(80);
+
+        builder.Property(p => p.DataNascimento)
+            .HasColumnName("DATA_NASCIMENTO");
+
+        builder.Property(p => p.PesoKg)
+            .HasColumnName("PESO_KG")
+            .HasPrecision(10, 2)
             .IsRequired();
 
         builder.Property(p => p.Sexo)
             .HasColumnName("SEXO")
-            .HasMaxLength(1)
-            .IsRequired();
-
-        builder.Property(p => p.DataNascimento)
-            .HasColumnName("DATA_NASCIMENTO")
-            .IsRequired();
-
-        builder.Property(p => p.PesoKg)
-            .HasColumnName("PESO_KG")
-            .HasPrecision(6, 2)
-            .IsRequired();
+            .HasMaxLength(1);
 
         builder.Property(p => p.CondicoesCronicas)
             .HasColumnName("CONDICOES_CRONICAS")
             .HasMaxLength(500);
 
+        builder.Property(p => p.DataCadastro)
+            .HasColumnName("DATA_CADASTRO")
+            .IsRequired();
+
         builder.Property(p => p.Ativo)
             .HasColumnName("ATIVO")
-            .HasConversion<int>()
+            .HasConversion(
+                ativo => ativo ? "S" : "N",
+                valor => valor == "S"
+            )
+            .HasMaxLength(1)
             .IsRequired();
 
         builder.HasOne(p => p.Clinica)

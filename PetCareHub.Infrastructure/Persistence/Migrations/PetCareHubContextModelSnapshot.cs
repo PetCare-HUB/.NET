@@ -27,7 +27,7 @@ namespace PetCareHub.Infrastructure.Persistence.Migrations
                     b.Property<long>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("NUMBER(19)")
-                        .HasColumnName("ID");
+                        .HasColumnName("ID_ALERTA");
 
                     OraclePropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("Id"));
 
@@ -39,28 +39,35 @@ namespace PetCareHub.Infrastructure.Persistence.Migrations
                         .HasColumnType("TIMESTAMP(7)")
                         .HasColumnName("DATA_RESOLUCAO");
 
-                    b.Property<string>("Descricao")
+                    b.Property<long?>("LeituraId")
+                        .HasColumnType("NUMBER(19)")
+                        .HasColumnName("ID_LEITURA");
+
+                    b.Property<decimal?>("LimiteReferencia")
+                        .HasPrecision(10, 2)
+                        .HasColumnType("DECIMAL(10,2)")
+                        .HasColumnName("LIMITE_REFERENCIA");
+
+                    b.Property<string>("Mensagem")
                         .IsRequired()
                         .HasMaxLength(500)
                         .HasColumnType("NVARCHAR2(500)")
-                        .HasColumnName("DESCRICAO");
+                        .HasColumnName("MENSAGEM");
 
-                    b.Property<long?>("LeituraSensorId")
-                        .HasColumnType("NUMBER(19)")
-                        .HasColumnName("LEITURA_SENSOR_ID");
-
-                    b.Property<string>("Nivel")
+                    b.Property<string>("NivelAlerta")
                         .IsRequired()
                         .HasMaxLength(20)
                         .HasColumnType("NVARCHAR2(20)")
-                        .HasColumnName("NIVEL");
+                        .HasColumnName("NIVEL_ALERTA");
 
                     b.Property<long>("PetId")
                         .HasColumnType("NUMBER(19)")
-                        .HasColumnName("PET_ID");
+                        .HasColumnName("ID_PET");
 
-                    b.Property<int>("Resolvido")
-                        .HasColumnType("NUMBER(10)")
+                    b.Property<string>("Resolvido")
+                        .IsRequired()
+                        .HasMaxLength(1)
+                        .HasColumnType("NVARCHAR2(1)")
                         .HasColumnName("RESOLVIDO");
 
                     b.Property<string>("TipoAlerta")
@@ -69,13 +76,18 @@ namespace PetCareHub.Infrastructure.Persistence.Migrations
                         .HasColumnType("NVARCHAR2(50)")
                         .HasColumnName("TIPO_ALERTA");
 
+                    b.Property<decimal?>("ValorDetectado")
+                        .HasPrecision(10, 2)
+                        .HasColumnType("DECIMAL(10,2)")
+                        .HasColumnName("VALOR_DETECTADO");
+
                     b.HasKey("Id");
 
                     b.HasIndex("DataAlerta");
 
-                    b.HasIndex("LeituraSensorId");
+                    b.HasIndex("LeituraId");
 
-                    b.HasIndex("Nivel");
+                    b.HasIndex("NivelAlerta");
 
                     b.HasIndex("PetId");
 
@@ -139,38 +151,49 @@ namespace PetCareHub.Infrastructure.Persistence.Migrations
                     b.Property<long>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("NUMBER(19)")
-                        .HasColumnName("ID");
+                        .HasColumnName("ID_CONSULTA");
 
                     OraclePropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("Id"));
 
                     b.Property<long>("ClinicaId")
                         .HasColumnType("NUMBER(19)")
-                        .HasColumnName("CLINICA_ID");
+                        .HasColumnName("ID_CLINICA");
 
                     b.Property<DateTime>("DataConsulta")
                         .HasColumnType("TIMESTAMP(7)")
                         .HasColumnName("DATA_CONSULTA");
 
-                    b.Property<string>("Observacoes")
-                        .HasMaxLength(1000)
-                        .HasColumnType("NVARCHAR2(1000)")
-                        .HasColumnName("OBSERVACOES");
+                    b.Property<DateTime?>("DataRetorno")
+                        .HasColumnType("TIMESTAMP(7)")
+                        .HasColumnName("DATA_RETORNO");
+
+                    b.Property<string>("Descricao")
+                        .HasMaxLength(500)
+                        .HasColumnType("NVARCHAR2(500)")
+                        .HasColumnName("DESCRICAO");
+
+                    b.Property<string>("Diagnostico")
+                        .HasMaxLength(500)
+                        .HasColumnType("NVARCHAR2(500)")
+                        .HasColumnName("DIAGNOSTICO");
 
                     b.Property<long>("PetId")
                         .HasColumnType("NUMBER(19)")
-                        .HasColumnName("PET_ID");
+                        .HasColumnName("ID_PET");
 
-                    b.Property<int>("RetornoRecomendado")
-                        .HasColumnType("NUMBER(10)")
+                    b.Property<string>("RetornoRecomendado")
+                        .IsRequired()
+                        .HasMaxLength(1)
+                        .HasColumnType("NVARCHAR2(1)")
                         .HasColumnName("RETORNO_RECOMENDADO");
 
                     b.Property<string>("TipoConsulta")
                         .IsRequired()
-                        .HasMaxLength(30)
-                        .HasColumnType("NVARCHAR2(30)")
+                        .HasMaxLength(50)
+                        .HasColumnType("NVARCHAR2(50)")
                         .HasColumnName("TIPO_CONSULTA");
 
-                    b.Property<decimal>("Valor")
+                    b.Property<decimal?>("Valor")
                         .HasPrecision(10, 2)
                         .HasColumnType("DECIMAL(10,2)")
                         .HasColumnName("VALOR");
@@ -191,7 +214,7 @@ namespace PetCareHub.Infrastructure.Persistence.Migrations
                     b.Property<long>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("NUMBER(19)")
-                        .HasColumnName("ID");
+                        .HasColumnName("ID_EVENTO");
 
                     OraclePropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("Id"));
 
@@ -211,7 +234,11 @@ namespace PetCareHub.Infrastructure.Persistence.Migrations
 
                     b.Property<long>("PetId")
                         .HasColumnType("NUMBER(19)")
-                        .HasColumnName("PET_ID");
+                        .HasColumnName("ID_PET");
+
+                    b.Property<long?>("ProtocoloId")
+                        .HasColumnType("NUMBER(19)")
+                        .HasColumnName("ID_PROTOCOLO");
 
                     b.Property<string>("Status")
                         .IsRequired()
@@ -219,11 +246,11 @@ namespace PetCareHub.Infrastructure.Persistence.Migrations
                         .HasColumnType("NVARCHAR2(20)")
                         .HasColumnName("STATUS");
 
-                    b.Property<string>("Tipo")
+                    b.Property<string>("TipoEvento")
                         .IsRequired()
                         .HasMaxLength(50)
                         .HasColumnType("NVARCHAR2(50)")
-                        .HasColumnName("TIPO");
+                        .HasColumnName("TIPO_EVENTO");
 
                     b.HasKey("Id");
 
@@ -241,7 +268,7 @@ namespace PetCareHub.Infrastructure.Persistence.Migrations
                     b.Property<long>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("NUMBER(19)")
-                        .HasColumnName("ID");
+                        .HasColumnName("ID_LEITURA");
 
                     OraclePropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("Id"));
 
@@ -249,9 +276,13 @@ namespace PetCareHub.Infrastructure.Persistence.Migrations
                         .HasColumnType("TIMESTAMP(7)")
                         .HasColumnName("DATA_LEITURA");
 
+                    b.Property<long>("DispositivoId")
+                        .HasColumnType("NUMBER(19)")
+                        .HasColumnName("ID_DISPOSITIVO");
+
                     b.Property<long>("PetId")
                         .HasColumnType("NUMBER(19)")
-                        .HasColumnName("PET_ID");
+                        .HasColumnName("ID_PET");
 
                     b.Property<string>("StatusLeitura")
                         .IsRequired()
@@ -259,17 +290,17 @@ namespace PetCareHub.Infrastructure.Persistence.Migrations
                         .HasColumnType("NVARCHAR2(20)")
                         .HasColumnName("STATUS_LEITURA");
 
-                    b.Property<string>("TipoSensor")
+                    b.Property<string>("TipoLeitura")
                         .IsRequired()
                         .HasMaxLength(50)
                         .HasColumnType("NVARCHAR2(50)")
-                        .HasColumnName("TIPO_SENSOR");
+                        .HasColumnName("TIPO_LEITURA");
 
-                    b.Property<string>("UnidadeMedida")
+                    b.Property<string>("Unidade")
                         .IsRequired()
                         .HasMaxLength(20)
                         .HasColumnType("NVARCHAR2(20)")
-                        .HasColumnName("UNIDADE_MEDIDA");
+                        .HasColumnName("UNIDADE");
 
                     b.Property<decimal>("Valor")
                         .HasPrecision(10, 2)
@@ -282,7 +313,7 @@ namespace PetCareHub.Infrastructure.Persistence.Migrations
 
                     b.HasIndex("PetId");
 
-                    b.HasIndex("TipoSensor");
+                    b.HasIndex("TipoLeitura");
 
                     b.ToTable("LEITURA_SENSOR", (string)null);
                 });
@@ -292,31 +323,37 @@ namespace PetCareHub.Infrastructure.Persistence.Migrations
                     b.Property<long>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("NUMBER(19)")
-                        .HasColumnName("ID");
+                        .HasColumnName("ID_PET");
 
                     OraclePropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("Id"));
 
-                    b.Property<int>("Ativo")
-                        .HasColumnType("NUMBER(10)")
+                    b.Property<string>("Ativo")
+                        .IsRequired()
+                        .HasMaxLength(1)
+                        .HasColumnType("NVARCHAR2(1)")
                         .HasColumnName("ATIVO");
 
                     b.Property<long>("ClinicaId")
                         .HasColumnType("NUMBER(19)")
-                        .HasColumnName("CLINICA_ID");
+                        .HasColumnName("ID_CLINICA");
 
                     b.Property<string>("CondicoesCronicas")
                         .HasMaxLength(500)
                         .HasColumnType("NVARCHAR2(500)")
                         .HasColumnName("CONDICOES_CRONICAS");
 
-                    b.Property<DateTime>("DataNascimento")
+                    b.Property<DateTime>("DataCadastro")
+                        .HasColumnType("TIMESTAMP(7)")
+                        .HasColumnName("DATA_CADASTRO");
+
+                    b.Property<DateTime?>("DataNascimento")
                         .HasColumnType("TIMESTAMP(7)")
                         .HasColumnName("DATA_NASCIMENTO");
 
                     b.Property<string>("Especie")
                         .IsRequired()
-                        .HasMaxLength(20)
-                        .HasColumnType("NVARCHAR2(20)")
+                        .HasMaxLength(50)
+                        .HasColumnType("NVARCHAR2(50)")
                         .HasColumnName("ESPECIE");
 
                     b.Property<string>("Nome")
@@ -326,25 +363,23 @@ namespace PetCareHub.Infrastructure.Persistence.Migrations
                         .HasColumnName("NOME");
 
                     b.Property<decimal>("PesoKg")
-                        .HasPrecision(6, 2)
-                        .HasColumnType("DECIMAL(6,2)")
+                        .HasPrecision(10, 2)
+                        .HasColumnType("DECIMAL(10,2)")
                         .HasColumnName("PESO_KG");
 
                     b.Property<string>("Raca")
-                        .IsRequired()
                         .HasMaxLength(80)
                         .HasColumnType("NVARCHAR2(80)")
                         .HasColumnName("RACA");
 
                     b.Property<string>("Sexo")
-                        .IsRequired()
                         .HasMaxLength(1)
                         .HasColumnType("NVARCHAR2(1)")
                         .HasColumnName("SEXO");
 
                     b.Property<long>("TutorId")
                         .HasColumnType("NUMBER(19)")
-                        .HasColumnName("TUTOR_ID");
+                        .HasColumnName("ID_TUTOR");
 
                     b.HasKey("Id");
 
@@ -362,7 +397,7 @@ namespace PetCareHub.Infrastructure.Persistence.Migrations
                     b.Property<long>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("NUMBER(19)")
-                        .HasColumnName("ID");
+                        .HasColumnName("ID_SCORE");
 
                     OraclePropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("Id"));
 
@@ -376,14 +411,29 @@ namespace PetCareHub.Infrastructure.Persistence.Migrations
                         .HasColumnType("TIMESTAMP(7)")
                         .HasColumnName("DATA_CALCULO");
 
-                    b.Property<string>("Observacao")
-                        .HasMaxLength(500)
-                        .HasColumnType("NVARCHAR2(500)")
-                        .HasColumnName("OBSERVACAO");
-
                     b.Property<long>("PetId")
                         .HasColumnType("NUMBER(19)")
-                        .HasColumnName("PET_ID");
+                        .HasColumnName("ID_PET");
+
+                    b.Property<int>("ScoreAlimentacao")
+                        .HasColumnType("NUMBER(10)")
+                        .HasColumnName("SCORE_ALIMENTACAO");
+
+                    b.Property<int>("ScoreAmbiente")
+                        .HasColumnType("NUMBER(10)")
+                        .HasColumnName("SCORE_AMBIENTE");
+
+                    b.Property<int>("ScoreAtividade")
+                        .HasColumnType("NUMBER(10)")
+                        .HasColumnName("SCORE_ATIVIDADE");
+
+                    b.Property<int>("ScoreConsulta")
+                        .HasColumnType("NUMBER(10)")
+                        .HasColumnName("SCORE_CONSULTA");
+
+                    b.Property<int>("ScorePreventivo")
+                        .HasColumnType("NUMBER(10)")
+                        .HasColumnName("SCORE_PREVENTIVO");
 
                     b.Property<int>("ScoreTotal")
                         .HasColumnType("NUMBER(10)")
@@ -404,7 +454,7 @@ namespace PetCareHub.Infrastructure.Persistence.Migrations
                 {
                     b.HasOne("PetCareHub.Domain.Entities.LeituraSensor", "LeituraSensor")
                         .WithMany("AlertasSaude")
-                        .HasForeignKey("LeituraSensorId")
+                        .HasForeignKey("LeituraId")
                         .OnDelete(DeleteBehavior.SetNull);
 
                     b.HasOne("PetCareHub.Domain.Entities.Pet", "Pet")

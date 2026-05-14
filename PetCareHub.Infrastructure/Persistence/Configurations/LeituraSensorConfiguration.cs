@@ -13,14 +13,18 @@ public class LeituraSensorConfiguration : IEntityTypeConfiguration<LeituraSensor
         builder.HasKey(l => l.Id);
 
         builder.Property(l => l.Id)
-            .HasColumnName("ID");
+            .HasColumnName("ID_LEITURA");
 
         builder.Property(l => l.PetId)
-            .HasColumnName("PET_ID")
+            .HasColumnName("ID_PET")
             .IsRequired();
 
-        builder.Property(l => l.TipoSensor)
-            .HasColumnName("TIPO_SENSOR")
+        builder.Property(l => l.DispositivoId)
+            .HasColumnName("ID_DISPOSITIVO")
+            .IsRequired();
+
+        builder.Property(l => l.TipoLeitura)
+            .HasColumnName("TIPO_LEITURA")
             .HasMaxLength(50)
             .IsRequired();
 
@@ -29,18 +33,18 @@ public class LeituraSensorConfiguration : IEntityTypeConfiguration<LeituraSensor
             .HasPrecision(10, 2)
             .IsRequired();
 
-        builder.Property(l => l.UnidadeMedida)
-            .HasColumnName("UNIDADE_MEDIDA")
-            .HasMaxLength(20)
-            .IsRequired();
-
-        builder.Property(l => l.StatusLeitura)
-            .HasColumnName("STATUS_LEITURA")
+        builder.Property(l => l.Unidade)
+            .HasColumnName("UNIDADE")
             .HasMaxLength(20)
             .IsRequired();
 
         builder.Property(l => l.DataLeitura)
             .HasColumnName("DATA_LEITURA")
+            .IsRequired();
+
+        builder.Property(l => l.StatusLeitura)
+            .HasColumnName("STATUS_LEITURA")
+            .HasMaxLength(20)
             .IsRequired();
 
         builder.HasOne(l => l.Pet)
@@ -49,7 +53,7 @@ public class LeituraSensorConfiguration : IEntityTypeConfiguration<LeituraSensor
             .OnDelete(DeleteBehavior.Restrict);
 
         builder.HasIndex(l => l.PetId);
-        builder.HasIndex(l => l.TipoSensor);
+        builder.HasIndex(l => l.TipoLeitura);
         builder.HasIndex(l => l.DataLeitura);
     }
 }

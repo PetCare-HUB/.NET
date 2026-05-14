@@ -8,11 +8,19 @@ public class ScoreSaude
 
     public int ScoreTotal { get; set; }
 
+    public int ScoreAtividade { get; set; }
+
+    public int ScoreAlimentacao { get; set; }
+
+    public int ScoreAmbiente { get; set; }
+
+    public int ScoreConsulta { get; set; }
+
+    public int ScorePreventivo { get; set; }
+
     public string Categoria { get; set; } = string.Empty;
 
-    public DateTime DataCalculo { get; set; } = DateTime.UtcNow;
-
-    public string? Observacao { get; set; }
+    public DateTime DataCalculo { get; set; }
 
     public Pet? Pet { get; set; }
 }

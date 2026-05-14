@@ -6,15 +6,17 @@ public class LeituraSensor
 
     public long PetId { get; set; }
 
-    public string TipoSensor { get; set; } = string.Empty;
+    public long DispositivoId { get; set; }
+
+    public string TipoLeitura { get; set; } = string.Empty;
 
     public decimal Valor { get; set; }
 
-    public string UnidadeMedida { get; set; } = string.Empty;
+    public string Unidade { get; set; } = string.Empty;
+
+    public DateTime DataLeitura { get; set; }
 
     public string StatusLeitura { get; set; } = "NORMAL";
-
-    public DateTime DataLeitura { get; set; } = DateTime.UtcNow;
 
     public Pet? Pet { get; set; }
 

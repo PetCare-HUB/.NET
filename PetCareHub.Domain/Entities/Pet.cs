@@ -12,17 +12,19 @@ public class Pet
 
     public string Especie { get; set; } = string.Empty;
 
-    public string Raca { get; set; } = string.Empty;
+    public string? Raca { get; set; }
 
-    public string Sexo { get; set; } = string.Empty;
-
-    public DateTime DataNascimento { get; set; }
+    public DateTime? DataNascimento { get; set; }
 
     public decimal PesoKg { get; set; }
 
+    public string? Sexo { get; set; }
+
     public string? CondicoesCronicas { get; set; }
 
-    public bool Ativo { get; set; } = true;
+    public DateTime DataCadastro { get; set; }
+
+    public bool Ativo { get; set; }
 
     public Clinica? Clinica { get; set; }
 

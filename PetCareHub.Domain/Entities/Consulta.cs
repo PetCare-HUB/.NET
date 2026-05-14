@@ -12,11 +12,15 @@ public class Consulta
 
     public string TipoConsulta { get; set; } = string.Empty;
 
-    public string? Observacoes { get; set; }
+    public string? Descricao { get; set; }
 
-    public decimal Valor { get; set; }
+    public string? Diagnostico { get; set; }
+
+    public decimal? Valor { get; set; }
 
     public bool RetornoRecomendado { get; set; }
+
+    public DateTime? DataRetorno { get; set; }
 
     public Pet? Pet { get; set; }
 

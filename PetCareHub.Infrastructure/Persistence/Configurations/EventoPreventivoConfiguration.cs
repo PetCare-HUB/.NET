@@ -13,14 +13,17 @@ public class EventoPreventivoConfiguration : IEntityTypeConfiguration<EventoPrev
         builder.HasKey(e => e.Id);
 
         builder.Property(e => e.Id)
-            .HasColumnName("ID");
+            .HasColumnName("ID_EVENTO");
 
         builder.Property(e => e.PetId)
-            .HasColumnName("PET_ID")
+            .HasColumnName("ID_PET")
             .IsRequired();
 
-        builder.Property(e => e.Tipo)
-            .HasColumnName("TIPO")
+        builder.Property(e => e.ProtocoloId)
+            .HasColumnName("ID_PROTOCOLO");
+
+        builder.Property(e => e.TipoEvento)
+            .HasColumnName("TIPO_EVENTO")
             .HasMaxLength(50)
             .IsRequired();
 

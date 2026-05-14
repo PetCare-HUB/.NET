@@ -6,7 +6,9 @@ public class EventoPreventivo
 
     public long PetId { get; set; }
 
-    public string Tipo { get; set; } = string.Empty;
+    public long? ProtocoloId { get; set; }
+
+    public string TipoEvento { get; set; } = string.Empty;
 
     public string Descricao { get; set; } = string.Empty;
 

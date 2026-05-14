@@ -33,25 +33,26 @@ namespace PetCareHub.Infrastructure.Persistence.Migrations
                 name: "PET",
                 columns: table => new
                 {
-                    ID = table.Column<long>(type: "NUMBER(19)", nullable: false)
+                    ID_PET = table.Column<long>(type: "NUMBER(19)", nullable: false)
                         .Annotation("Oracle:Identity", "START WITH 1 INCREMENT BY 1"),
-                    TUTOR_ID = table.Column<long>(type: "NUMBER(19)", nullable: false),
-                    CLINICA_ID = table.Column<long>(type: "NUMBER(19)", nullable: false),
+                    ID_TUTOR = table.Column<long>(type: "NUMBER(19)", nullable: false),
+                    ID_CLINICA = table.Column<long>(type: "NUMBER(19)", nullable: false),
                     NOME = table.Column<string>(type: "NVARCHAR2(100)", maxLength: 100, nullable: false),
-                    ESPECIE = table.Column<string>(type: "NVARCHAR2(20)", maxLength: 20, nullable: false),
-                    RACA = table.Column<string>(type: "NVARCHAR2(80)", maxLength: 80, nullable: false),
-                    SEXO = table.Column<string>(type: "NVARCHAR2(1)", maxLength: 1, nullable: false),
-                    DATA_NASCIMENTO = table.Column<DateTime>(type: "TIMESTAMP(7)", nullable: false),
-                    PESO_KG = table.Column<decimal>(type: "DECIMAL(6,2)", precision: 6, scale: 2, nullable: false),
+                    ESPECIE = table.Column<string>(type: "NVARCHAR2(50)", maxLength: 50, nullable: false),
+                    RACA = table.Column<string>(type: "NVARCHAR2(80)", maxLength: 80, nullable: true),
+                    DATA_NASCIMENTO = table.Column<DateTime>(type: "TIMESTAMP(7)", nullable: true),
+                    PESO_KG = table.Column<decimal>(type: "DECIMAL(10,2)", precision: 10, scale: 2, nullable: false),
+                    SEXO = table.Column<string>(type: "NVARCHAR2(1)", maxLength: 1, nullable: true),
                     CONDICOES_CRONICAS = table.Column<string>(type: "NVARCHAR2(500)", maxLength: 500, nullable: true),
-                    ATIVO = table.Column<int>(type: "NUMBER(10)", nullable: false)
+                    DATA_CADASTRO = table.Column<DateTime>(type: "TIMESTAMP(7)", nullable: false),
+                    ATIVO = table.Column<string>(type: "NVARCHAR2(1)", maxLength: 1, nullable: false)
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_PET", x => x.ID);
+                    table.PrimaryKey("PK_PET", x => x.ID_PET);
                     table.ForeignKey(
-                        name: "FK_PET_CLINICA_CLINICA_ID",
-                        column: x => x.CLINICA_ID,
+                        name: "FK_PET_CLINICA_ID_CLINICA",
+                        column: x => x.ID_CLINICA,
                         principalTable: "CLINICA",
                         principalColumn: "ID_CLINICA",
                         onDelete: ReferentialAction.Restrict);
@@ -61,30 +62,32 @@ namespace PetCareHub.Infrastructure.Persistence.Migrations
                 name: "CONSULTA",
                 columns: table => new
                 {
-                    ID = table.Column<long>(type: "NUMBER(19)", nullable: false)
+                    ID_CONSULTA = table.Column<long>(type: "NUMBER(19)", nullable: false)
                         .Annotation("Oracle:Identity", "START WITH 1 INCREMENT BY 1"),
-                    PET_ID = table.Column<long>(type: "NUMBER(19)", nullable: false),
-                    CLINICA_ID = table.Column<long>(type: "NUMBER(19)", nullable: false),
+                    ID_PET = table.Column<long>(type: "NUMBER(19)", nullable: false),
+                    ID_CLINICA = table.Column<long>(type: "NUMBER(19)", nullable: false),
                     DATA_CONSULTA = table.Column<DateTime>(type: "TIMESTAMP(7)", nullable: false),
-                    TIPO_CONSULTA = table.Column<string>(type: "NVARCHAR2(30)", maxLength: 30, nullable: false),
-                    OBSERVACOES = table.Column<string>(type: "NVARCHAR2(1000)", maxLength: 1000, nullable: true),
-                    VALOR = table.Column<decimal>(type: "DECIMAL(10,2)", precision: 10, scale: 2, nullable: false),
-                    RETORNO_RECOMENDADO = table.Column<int>(type: "NUMBER(10)", nullable: false)
+                    TIPO_CONSULTA = table.Column<string>(type: "NVARCHAR2(50)", maxLength: 50, nullable: false),
+                    DESCRICAO = table.Column<string>(type: "NVARCHAR2(500)", maxLength: 500, nullable: true),
+                    DIAGNOSTICO = table.Column<string>(type: "NVARCHAR2(500)", maxLength: 500, nullable: true),
+                    VALOR = table.Column<decimal>(type: "DECIMAL(10,2)", precision: 10, scale: 2, nullable: true),
+                    RETORNO_RECOMENDADO = table.Column<string>(type: "NVARCHAR2(1)", maxLength: 1, nullable: false),
+                    DATA_RETORNO = table.Column<DateTime>(type: "TIMESTAMP(7)", nullable: true)
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_CONSULTA", x => x.ID);
+                    table.PrimaryKey("PK_CONSULTA", x => x.ID_CONSULTA);
                     table.ForeignKey(
-                        name: "FK_CONSULTA_CLINICA_CLINICA_ID",
-                        column: x => x.CLINICA_ID,
+                        name: "FK_CONSULTA_CLINICA_ID_CLINICA",
+                        column: x => x.ID_CLINICA,
                         principalTable: "CLINICA",
                         principalColumn: "ID_CLINICA",
                         onDelete: ReferentialAction.Restrict);
                     table.ForeignKey(
-                        name: "FK_CONSULTA_PET_PET_ID",
-                        column: x => x.PET_ID,
+                        name: "FK_CONSULTA_PET_ID_PET",
+                        column: x => x.ID_PET,
                         principalTable: "PET",
-                        principalColumn: "ID",
+                        principalColumn: "ID_PET",
                         onDelete: ReferentialAction.Restrict);
                 });
 
@@ -92,10 +95,11 @@ namespace PetCareHub.Infrastructure.Persistence.Migrations
                 name: "EVENTO_PREVENTIVO",
                 columns: table => new
                 {
-                    ID = table.Column<long>(type: "NUMBER(19)", nullable: false)
+                    ID_EVENTO = table.Column<long>(type: "NUMBER(19)", nullable: false)
                         .Annotation("Oracle:Identity", "START WITH 1 INCREMENT BY 1"),
-                    PET_ID = table.Column<long>(type: "NUMBER(19)", nullable: false),
-                    TIPO = table.Column<string>(type: "NVARCHAR2(50)", maxLength: 50, nullable: false),
+                    ID_PET = table.Column<long>(type: "NUMBER(19)", nullable: false),
+                    ID_PROTOCOLO = table.Column<long>(type: "NUMBER(19)", nullable: true),
+                    TIPO_EVENTO = table.Column<string>(type: "NVARCHAR2(50)", maxLength: 50, nullable: false),
                     DESCRICAO = table.Column<string>(type: "NVARCHAR2(300)", maxLength: 300, nullable: false),
                     DATA_PREVISTA = table.Column<DateTime>(type: "TIMESTAMP(7)", nullable: false),
                     DATA_REALIZACAO = table.Column<DateTime>(type: "TIMESTAMP(7)", nullable: true),
@@ -103,12 +107,12 @@ namespace PetCareHub.Infrastructure.Persistence.Migrations
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_EVENTO_PREVENTIVO", x => x.ID);
+                    table.PrimaryKey("PK_EVENTO_PREVENTIVO", x => x.ID_EVENTO);
                     table.ForeignKey(
-                        name: "FK_EVENTO_PREVENTIVO_PET_PET_ID",
-                        column: x => x.PET_ID,
+                        name: "FK_EVENTO_PREVENTIVO_PET_ID_PET",
+                        column: x => x.ID_PET,
                         principalTable: "PET",
-                        principalColumn: "ID",
+                        principalColumn: "ID_PET",
                         onDelete: ReferentialAction.Restrict);
                 });
 
@@ -116,23 +120,24 @@ namespace PetCareHub.Infrastructure.Persistence.Migrations
                 name: "LEITURA_SENSOR",
                 columns: table => new
                 {
-                    ID = table.Column<long>(type: "NUMBER(19)", nullable: false)
+                    ID_LEITURA = table.Column<long>(type: "NUMBER(19)", nullable: false)
                         .Annotation("Oracle:Identity", "START WITH 1 INCREMENT BY 1"),
-                    PET_ID = table.Column<long>(type: "NUMBER(19)", nullable: false),
-                    TIPO_SENSOR = table.Column<string>(type: "NVARCHAR2(50)", maxLength: 50, nullable: false),
+                    ID_PET = table.Column<long>(type: "NUMBER(19)", nullable: false),
+                    ID_DISPOSITIVO = table.Column<long>(type: "NUMBER(19)", nullable: false),
+                    TIPO_LEITURA = table.Column<string>(type: "NVARCHAR2(50)", maxLength: 50, nullable: false),
                     VALOR = table.Column<decimal>(type: "DECIMAL(10,2)", precision: 10, scale: 2, nullable: false),
-                    UNIDADE_MEDIDA = table.Column<string>(type: "NVARCHAR2(20)", maxLength: 20, nullable: false),
-                    STATUS_LEITURA = table.Column<string>(type: "NVARCHAR2(20)", maxLength: 20, nullable: false),
-                    DATA_LEITURA = table.Column<DateTime>(type: "TIMESTAMP(7)", nullable: false)
+                    UNIDADE = table.Column<string>(type: "NVARCHAR2(20)", maxLength: 20, nullable: false),
+                    DATA_LEITURA = table.Column<DateTime>(type: "TIMESTAMP(7)", nullable: false),
+                    STATUS_LEITURA = table.Column<string>(type: "NVARCHAR2(20)", maxLength: 20, nullable: false)
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_LEITURA_SENSOR", x => x.ID);
+                    table.PrimaryKey("PK_LEITURA_SENSOR", x => x.ID_LEITURA);
                     table.ForeignKey(
-                        name: "FK_LEITURA_SENSOR_PET_PET_ID",
-                        column: x => x.PET_ID,
+                        name: "FK_LEITURA_SENSOR_PET_ID_PET",
+                        column: x => x.ID_PET,
                         principalTable: "PET",
-                        principalColumn: "ID",
+                        principalColumn: "ID_PET",
                         onDelete: ReferentialAction.Restrict);
                 });
 
@@ -140,22 +145,26 @@ namespace PetCareHub.Infrastructure.Persistence.Migrations
                 name: "SCORE_SAUDE",
                 columns: table => new
                 {
-                    ID = table.Column<long>(type: "NUMBER(19)", nullable: false)
+                    ID_SCORE = table.Column<long>(type: "NUMBER(19)", nullable: false)
                         .Annotation("Oracle:Identity", "START WITH 1 INCREMENT BY 1"),
-                    PET_ID = table.Column<long>(type: "NUMBER(19)", nullable: false),
+                    ID_PET = table.Column<long>(type: "NUMBER(19)", nullable: false),
                     SCORE_TOTAL = table.Column<int>(type: "NUMBER(10)", nullable: false),
+                    SCORE_ATIVIDADE = table.Column<int>(type: "NUMBER(10)", nullable: false),
+                    SCORE_ALIMENTACAO = table.Column<int>(type: "NUMBER(10)", nullable: false),
+                    SCORE_AMBIENTE = table.Column<int>(type: "NUMBER(10)", nullable: false),
+                    SCORE_CONSULTA = table.Column<int>(type: "NUMBER(10)", nullable: false),
+                    SCORE_PREVENTIVO = table.Column<int>(type: "NUMBER(10)", nullable: false),
                     CATEGORIA = table.Column<string>(type: "NVARCHAR2(20)", maxLength: 20, nullable: false),
-                    DATA_CALCULO = table.Column<DateTime>(type: "TIMESTAMP(7)", nullable: false),
-                    OBSERVACAO = table.Column<string>(type: "NVARCHAR2(500)", maxLength: 500, nullable: true)
+                    DATA_CALCULO = table.Column<DateTime>(type: "TIMESTAMP(7)", nullable: false)
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_SCORE_SAUDE", x => x.ID);
+                    table.PrimaryKey("PK_SCORE_SAUDE", x => x.ID_SCORE);
                     table.ForeignKey(
-                        name: "FK_SCORE_SAUDE_PET_PET_ID",
-                        column: x => x.PET_ID,
+                        name: "FK_SCORE_SAUDE_PET_ID_PET",
+                        column: x => x.ID_PET,
                         principalTable: "PET",
-                        principalColumn: "ID",
+                        principalColumn: "ID_PET",
                         onDelete: ReferentialAction.Restrict);
                 });
 
@@ -163,31 +172,33 @@ namespace PetCareHub.Infrastructure.Persistence.Migrations
                 name: "ALERTA_SAUDE",
                 columns: table => new
                 {
-                    ID = table.Column<long>(type: "NUMBER(19)", nullable: false)
+                    ID_ALERTA = table.Column<long>(type: "NUMBER(19)", nullable: false)
                         .Annotation("Oracle:Identity", "START WITH 1 INCREMENT BY 1"),
-                    PET_ID = table.Column<long>(type: "NUMBER(19)", nullable: false),
-                    LEITURA_SENSOR_ID = table.Column<long>(type: "NUMBER(19)", nullable: true),
+                    ID_PET = table.Column<long>(type: "NUMBER(19)", nullable: false),
+                    ID_LEITURA = table.Column<long>(type: "NUMBER(19)", nullable: true),
                     TIPO_ALERTA = table.Column<string>(type: "NVARCHAR2(50)", maxLength: 50, nullable: false),
-                    DESCRICAO = table.Column<string>(type: "NVARCHAR2(500)", maxLength: 500, nullable: false),
-                    NIVEL = table.Column<string>(type: "NVARCHAR2(20)", maxLength: 20, nullable: false),
-                    RESOLVIDO = table.Column<int>(type: "NUMBER(10)", nullable: false),
+                    NIVEL_ALERTA = table.Column<string>(type: "NVARCHAR2(20)", maxLength: 20, nullable: false),
+                    MENSAGEM = table.Column<string>(type: "NVARCHAR2(500)", maxLength: 500, nullable: false),
+                    VALOR_DETECTADO = table.Column<decimal>(type: "DECIMAL(10,2)", precision: 10, scale: 2, nullable: true),
+                    LIMITE_REFERENCIA = table.Column<decimal>(type: "DECIMAL(10,2)", precision: 10, scale: 2, nullable: true),
+                    RESOLVIDO = table.Column<string>(type: "NVARCHAR2(1)", maxLength: 1, nullable: false),
                     DATA_ALERTA = table.Column<DateTime>(type: "TIMESTAMP(7)", nullable: false),
                     DATA_RESOLUCAO = table.Column<DateTime>(type: "TIMESTAMP(7)", nullable: true)
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_ALERTA_SAUDE", x => x.ID);
+                    table.PrimaryKey("PK_ALERTA_SAUDE", x => x.ID_ALERTA);
                     table.ForeignKey(
-                        name: "FK_ALERTA_SAUDE_LEITURA_SENSOR_LEITURA_SENSOR_ID",
-                        column: x => x.LEITURA_SENSOR_ID,
+                        name: "FK_ALERTA_SAUDE_LEITURA_SENSOR_ID_LEITURA",
+                        column: x => x.ID_LEITURA,
                         principalTable: "LEITURA_SENSOR",
-                        principalColumn: "ID",
+                        principalColumn: "ID_LEITURA",
                         onDelete: ReferentialAction.SetNull);
                     table.ForeignKey(
-                        name: "FK_ALERTA_SAUDE_PET_PET_ID",
-                        column: x => x.PET_ID,
+                        name: "FK_ALERTA_SAUDE_PET_ID_PET",
+                        column: x => x.ID_PET,
                         principalTable: "PET",
-                        principalColumn: "ID",
+                        principalColumn: "ID_PET",
                         onDelete: ReferentialAction.Restrict);
                 });
 
@@ -197,19 +208,19 @@ namespace PetCareHub.Infrastructure.Persistence.Migrations
                 column: "DATA_ALERTA");
 
             migrationBuilder.CreateIndex(
-                name: "IX_ALERTA_SAUDE_LEITURA_SENSOR_ID",
+                name: "IX_ALERTA_SAUDE_ID_LEITURA",
                 table: "ALERTA_SAUDE",
-                column: "LEITURA_SENSOR_ID");
+                column: "ID_LEITURA");
 
             migrationBuilder.CreateIndex(
-                name: "IX_ALERTA_SAUDE_NIVEL",
+                name: "IX_ALERTA_SAUDE_ID_PET",
                 table: "ALERTA_SAUDE",
-                column: "NIVEL");
+                column: "ID_PET");
 
             migrationBuilder.CreateIndex(
-                name: "IX_ALERTA_SAUDE_PET_ID",
+                name: "IX_ALERTA_SAUDE_NIVEL_ALERTA",
                 table: "ALERTA_SAUDE",
-                column: "PET_ID");
+                column: "NIVEL_ALERTA");
 
             migrationBuilder.CreateIndex(
                 name: "IX_ALERTA_SAUDE_RESOLVIDO",
@@ -223,19 +234,19 @@ namespace PetCareHub.Infrastructure.Persistence.Migrations
                 unique: true);
 
             migrationBuilder.CreateIndex(
-                name: "IX_CONSULTA_CLINICA_ID",
-                table: "CONSULTA",
-                column: "CLINICA_ID");
-
-            migrationBuilder.CreateIndex(
                 name: "IX_CONSULTA_DATA_CONSULTA",
                 table: "CONSULTA",
                 column: "DATA_CONSULTA");
 
             migrationBuilder.CreateIndex(
-                name: "IX_CONSULTA_PET_ID",
+                name: "IX_CONSULTA_ID_CLINICA",
                 table: "CONSULTA",
-                column: "PET_ID");
+                column: "ID_CLINICA");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_CONSULTA_ID_PET",
+                table: "CONSULTA",
+                column: "ID_PET");
 
             migrationBuilder.CreateIndex(
                 name: "IX_EVENTO_PREVENTIVO_DATA_PREVISTA",
@@ -243,9 +254,9 @@ namespace PetCareHub.Infrastructure.Persistence.Migrations
                 column: "DATA_PREVISTA");
 
             migrationBuilder.CreateIndex(
-                name: "IX_EVENTO_PREVENTIVO_PET_ID",
+                name: "IX_EVENTO_PREVENTIVO_ID_PET",
                 table: "EVENTO_PREVENTIVO",
-                column: "PET_ID");
+                column: "ID_PET");
 
             migrationBuilder.CreateIndex(
                 name: "IX_EVENTO_PREVENTIVO_STATUS",
@@ -258,19 +269,14 @@ namespace PetCareHub.Infrastructure.Persistence.Migrations
                 column: "DATA_LEITURA");
 
             migrationBuilder.CreateIndex(
-                name: "IX_LEITURA_SENSOR_PET_ID",
+                name: "IX_LEITURA_SENSOR_ID_PET",
                 table: "LEITURA_SENSOR",
-                column: "PET_ID");
+                column: "ID_PET");
 
             migrationBuilder.CreateIndex(
-                name: "IX_LEITURA_SENSOR_TIPO_SENSOR",
+                name: "IX_LEITURA_SENSOR_TIPO_LEITURA",
                 table: "LEITURA_SENSOR",
-                column: "TIPO_SENSOR");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_PET_CLINICA_ID",
-                table: "PET",
-                column: "CLINICA_ID");
+                column: "TIPO_LEITURA");
 
             migrationBuilder.CreateIndex(
                 name: "IX_PET_ESPECIE",
@@ -278,9 +284,14 @@ namespace PetCareHub.Infrastructure.Persistence.Migrations
                 column: "ESPECIE");
 
             migrationBuilder.CreateIndex(
-                name: "IX_PET_TUTOR_ID",
+                name: "IX_PET_ID_CLINICA",
                 table: "PET",
-                column: "TUTOR_ID");
+                column: "ID_CLINICA");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_PET_ID_TUTOR",
+                table: "PET",
+                column: "ID_TUTOR");
 
             migrationBuilder.CreateIndex(
                 name: "IX_SCORE_SAUDE_CATEGORIA",
@@ -293,9 +304,9 @@ namespace PetCareHub.Infrastructure.Persistence.Migrations
                 column: "DATA_CALCULO");
 
             migrationBuilder.CreateIndex(
-                name: "IX_SCORE_SAUDE_PET_ID",
+                name: "IX_SCORE_SAUDE_ID_PET",
                 table: "SCORE_SAUDE",
-                column: "PET_ID");
+                column: "ID_PET");
         }
 
         /// <inheritdoc />
