@@ -458,7 +458,6 @@ Filtros opcionais:
 ```http
 GET /api/AlertasSaude?petId=1
 GET /api/AlertasSaude?nivelAlerta=CRITICO
-GET /api/AlertasSaude?tipoAlerta=TEMPERATURA_ALTA
 GET /api/AlertasSaude?resolvido=false
 ```
 
