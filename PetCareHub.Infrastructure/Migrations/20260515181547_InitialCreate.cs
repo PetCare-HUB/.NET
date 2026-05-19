@@ -3,7 +3,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
 
-namespace PetCareHub.Infrastructure.Persistence.Migrations
+namespace PetCareHub.Infrastructure.Migrations
 {
     /// <inheritdoc />
     public partial class InitialCreate : Migration
@@ -35,7 +35,7 @@ namespace PetCareHub.Infrastructure.Persistence.Migrations
                 {
                     ID_PET = table.Column<long>(type: "NUMBER(19)", nullable: false)
                         .Annotation("Oracle:Identity", "START WITH 1 INCREMENT BY 1"),
-                    ID_TUTOR = table.Column<long>(type: "NUMBER(19)", nullable: false),
+                    ID_RESPONSAVEL = table.Column<long>(type: "NUMBER(19)", nullable: false),
                     ID_CLINICA = table.Column<long>(type: "NUMBER(19)", nullable: false),
                     NOME = table.Column<string>(type: "NVARCHAR2(100)", maxLength: 100, nullable: false),
                     ESPECIE = table.Column<string>(type: "NVARCHAR2(50)", maxLength: 50, nullable: false),
@@ -289,9 +289,9 @@ namespace PetCareHub.Infrastructure.Persistence.Migrations
                 column: "ID_CLINICA");
 
             migrationBuilder.CreateIndex(
-                name: "IX_PET_ID_TUTOR",
+                name: "IX_PET_ID_RESPONSAVEL",
                 table: "PET",
-                column: "ID_TUTOR");
+                column: "ID_RESPONSAVEL");
 
             migrationBuilder.CreateIndex(
                 name: "IX_SCORE_SAUDE_CATEGORIA",

@@ -4,7 +4,7 @@ public class Pet
 {
     public long Id { get; set; }
 
-    public long TutorId { get; set; }
+    public long ResponsavelId { get; set; }
 
     public long ClinicaId { get; set; }
 

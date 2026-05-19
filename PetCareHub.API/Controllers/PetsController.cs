@@ -45,7 +45,7 @@ public class PetsController : ControllerBase
             .Select(p => new
             {
                 p.Id,
-                p.TutorId,
+                p.ResponsavelId,
                 p.ClinicaId,
                 p.Nome,
                 p.Especie,
@@ -71,7 +71,7 @@ public class PetsController : ControllerBase
             .Select(p => new
             {
                 p.Id,
-                p.TutorId,
+                p.ResponsavelId,
                 p.ClinicaId,
                 p.Nome,
                 p.Especie,

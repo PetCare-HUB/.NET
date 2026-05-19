@@ -2,21 +2,18 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
-using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Oracle.EntityFrameworkCore.Metadata;
 using PetCareHub.Infrastructure.Persistence;
 
 #nullable disable
 
-namespace PetCareHub.Infrastructure.Persistence.Migrations
+namespace PetCareHub.Infrastructure.Migrations
 {
     [DbContext(typeof(PetCareHubContext))]
-    [Migration("20260514005735_InitialCreate")]
-    partial class InitialCreate
+    partial class PetCareHubContextModelSnapshot : ModelSnapshot
     {
-        /// <inheritdoc />
-        protected override void BuildTargetModel(ModelBuilder modelBuilder)
+        protected override void BuildModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -375,14 +372,14 @@ namespace PetCareHub.Infrastructure.Persistence.Migrations
                         .HasColumnType("NVARCHAR2(80)")
                         .HasColumnName("RACA");
 
+                    b.Property<long>("ResponsavelId")
+                        .HasColumnType("NUMBER(19)")
+                        .HasColumnName("ID_RESPONSAVEL");
+
                     b.Property<string>("Sexo")
                         .HasMaxLength(1)
                         .HasColumnType("NVARCHAR2(1)")
                         .HasColumnName("SEXO");
-
-                    b.Property<long>("TutorId")
-                        .HasColumnType("NUMBER(19)")
-                        .HasColumnName("ID_TUTOR");
 
                     b.HasKey("Id");
 
@@ -390,7 +387,7 @@ namespace PetCareHub.Infrastructure.Persistence.Migrations
 
                     b.HasIndex("Especie");
 
-                    b.HasIndex("TutorId");
+                    b.HasIndex("ResponsavelId");
 
                     b.ToTable("PET", (string)null);
                 });

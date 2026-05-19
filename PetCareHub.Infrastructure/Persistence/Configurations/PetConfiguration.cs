@@ -15,8 +15,8 @@ public class PetConfiguration : IEntityTypeConfiguration<Pet>
         builder.Property(p => p.Id)
             .HasColumnName("ID_PET");
 
-        builder.Property(p => p.TutorId)
-            .HasColumnName("ID_TUTOR")
+        builder.Property(p => p.ResponsavelId)
+            .HasColumnName("ID_RESPONSAVEL")
             .IsRequired();
 
         builder.Property(p => p.ClinicaId)
@@ -72,7 +72,7 @@ public class PetConfiguration : IEntityTypeConfiguration<Pet>
             .OnDelete(DeleteBehavior.Restrict);
 
         builder.HasIndex(p => p.ClinicaId);
-        builder.HasIndex(p => p.TutorId);
+        builder.HasIndex(p => p.ResponsavelId);
         builder.HasIndex(p => p.Especie);
     }
 }
