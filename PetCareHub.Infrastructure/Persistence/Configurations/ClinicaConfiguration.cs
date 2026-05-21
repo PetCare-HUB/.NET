@@ -17,17 +17,17 @@ public class ClinicaConfiguration : IEntityTypeConfiguration<Clinica>
 
         builder.Property(c => c.Nome)
             .HasColumnName("NOME")
-            .HasMaxLength(100)
+            .HasMaxLength(120)
             .IsRequired();
 
         builder.Property(c => c.Cnpj)
             .HasColumnName("CNPJ")
-            .HasMaxLength(18)
+            .HasMaxLength(14)
             .IsRequired();
 
         builder.Property(c => c.Email)
             .HasColumnName("EMAIL")
-            .HasMaxLength(100);
+            .HasMaxLength(120);
 
         builder.Property(c => c.Telefone)
             .HasColumnName("TELEFONE")

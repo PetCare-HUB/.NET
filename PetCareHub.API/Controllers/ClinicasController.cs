@@ -79,9 +79,16 @@ public class ClinicasController : ControllerBase
             return BadRequest(new { mensagem = "O CNPJ da clínica é obrigatório." });
         }
 
+        var cnpjNormalizado = SomenteNumeros(request.Cnpj);
+
+        if (cnpjNormalizado.Length != 14)
+        {
+            return BadRequest(new { mensagem = "O CNPJ deve conter exatamente 14 números." });
+        }
+
         var cnpjJaExiste = await _context.Clinicas
             .AsNoTracking()
-            .CountAsync(c => c.Cnpj == request.Cnpj);
+            .CountAsync(c => c.Cnpj == cnpjNormalizado);
 
         if (cnpjJaExiste > 0)
         {
@@ -96,7 +103,7 @@ public class ClinicasController : ControllerBase
         {
             Id = proximoId + 1,
             Nome = request.Nome.Trim(),
-            Cnpj = request.Cnpj.Trim(),
+            Cnpj = cnpjNormalizado,
             Email = request.Email?.Trim(),
             Telefone = request.Telefone?.Trim(),
             Endereco = request.Endereco?.Trim(),
@@ -146,9 +153,16 @@ public class ClinicasController : ControllerBase
             return BadRequest(new { mensagem = "O CNPJ da clínica é obrigatório." });
         }
 
+        var cnpjNormalizado = SomenteNumeros(request.Cnpj);
+
+        if (cnpjNormalizado.Length != 14)
+        {
+            return BadRequest(new { mensagem = "O CNPJ deve conter exatamente 14 números." });
+        }
+
         var cnpjJaExisteEmOutraClinica = await _context.Clinicas
             .AsNoTracking()
-            .CountAsync(c => c.Cnpj == request.Cnpj && c.Id != id);
+            .CountAsync(c => c.Cnpj == cnpjNormalizado && c.Id != id);
 
         if (cnpjJaExisteEmOutraClinica > 0)
         {
@@ -156,7 +170,7 @@ public class ClinicasController : ControllerBase
         }
 
         clinica.Nome = request.Nome.Trim();
-        clinica.Cnpj = request.Cnpj.Trim();
+        clinica.Cnpj = cnpjNormalizado;
         clinica.Email = request.Email?.Trim();
         clinica.Telefone = request.Telefone?.Trim();
         clinica.Endereco = request.Endereco?.Trim();
@@ -206,6 +220,11 @@ public class ClinicasController : ControllerBase
         await _context.SaveChangesAsync();
 
         return NoContent();
+    }
+
+    private static string SomenteNumeros(string valor)
+    {
+        return new string(valor.Where(char.IsDigit).ToArray());
     }
 }
 

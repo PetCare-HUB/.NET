@@ -303,7 +303,7 @@ Body:
 ```json
 {
   "nome": "Clinica Teste DotNet",
-  "cnpj": "99.999.999/0001-99",
+  "cnpj": "99999999000199"
   "email": "teste@petcare.com",
   "telefone": "(11) 99999-9999",
   "endereco": "Rua Teste, 123"

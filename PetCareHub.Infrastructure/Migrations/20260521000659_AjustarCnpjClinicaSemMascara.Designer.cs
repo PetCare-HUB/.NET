@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Oracle.EntityFrameworkCore.Metadata;
 using PetCareHub.Infrastructure.Persistence;
@@ -11,9 +12,11 @@ using PetCareHub.Infrastructure.Persistence;
 namespace PetCareHub.Infrastructure.Migrations
 {
     [DbContext(typeof(PetCareHubContext))]
-    partial class PetCareHubContextModelSnapshot : ModelSnapshot
+    [Migration("20260521000659_AjustarCnpjClinicaSemMascara")]
+    partial class AjustarCnpjClinicaSemMascara
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
