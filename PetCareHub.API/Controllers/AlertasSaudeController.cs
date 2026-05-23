@@ -1,214 +1,150 @@
 ﻿using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using PetCareHub.Infrastructure.Persistence;
+using PetCareHub.Application.DTOs;
+using PetCareHub.Application.Services.Interfaces;
 
 namespace PetCareHub.API.Controllers;
 
-[ApiController]
+/// <summary>
+/// Gerenciamento de alertas de saúde dos pets.
+/// </summary>
 [Route("api/[controller]")]
-public class AlertasSaudeController : ControllerBase
+[ApiController]
+[Produces("application/json")]
+public class AlertasSaudeController(IAlertaSaudeService alertaService) : ControllerBase
 {
-    private readonly PetCareHubContext _context;
-
-    public AlertasSaudeController(PetCareHubContext context)
-    {
-        _context = context;
-    }
-
+    /// <summary>
+    /// Lista todos os alertas.
+    /// </summary>
+    /// <response code="200">Lista retornada com sucesso.</response>
     [HttpGet]
-    public async Task<IActionResult> GetAll(
-        [FromQuery] long? petId,
-        [FromQuery] string? nivelAlerta,
-        [FromQuery] string? tipoAlerta,
-        [FromQuery] bool? resolvido)
+    [ProducesResponseType(typeof(IReadOnlyList<AlertaSaudeResponse>), StatusCodes.Status200OK)]
+    public IActionResult GetAll()
     {
-        var query = _context.AlertasSaude
-            .AsNoTracking()
-            .AsQueryable();
-
-        if (petId.HasValue)
-        {
-            query = query.Where(a => a.PetId == petId.Value);
-        }
-
-        if (!string.IsNullOrWhiteSpace(nivelAlerta))
-        {
-            query = query.Where(a => a.NivelAlerta.ToUpper() == nivelAlerta.ToUpper());
-        }
-
-        if (!string.IsNullOrWhiteSpace(tipoAlerta))
-        {
-            query = query.Where(a => a.TipoAlerta.ToUpper() == tipoAlerta.ToUpper());
-        }
-
-        if (resolvido.HasValue)
-        {
-            query = query.Where(a => a.Resolvido == resolvido.Value);
-        }
-
-        var alertas = await query
-            .OrderByDescending(a => a.DataAlerta)
-            .Select(a => new
-            {
-                a.Id,
-                a.PetId,
-                a.LeituraId,
-                a.TipoAlerta,
-                a.NivelAlerta,
-                a.Mensagem,
-                a.ValorDetectado,
-                a.LimiteReferencia,
-                a.Resolvido,
-                a.DataAlerta,
-                a.DataResolucao
-            })
-            .ToListAsync();
-
+        var alertas = alertaService.GetAll();
         return Ok(alertas);
     }
 
+    /// <summary>
+    /// Obtém um alerta pelo ID.
+    /// </summary>
+    /// <param name="id">ID do alerta</param>
+    /// <response code="200">Alerta encontrado.</response>
+    /// <response code="404">Alerta não encontrado.</response>
     [HttpGet("{id:long}")]
-    public async Task<IActionResult> GetById(long id)
+    [ProducesResponseType(typeof(AlertaSaudeResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public IActionResult GetById(long id)
     {
-        var alerta = await _context.AlertasSaude
-            .AsNoTracking()
-            .Where(a => a.Id == id)
-            .Select(a => new
-            {
-                a.Id,
-                a.PetId,
-                a.LeituraId,
-                a.TipoAlerta,
-                a.NivelAlerta,
-                a.Mensagem,
-                a.ValorDetectado,
-                a.LimiteReferencia,
-                a.Resolvido,
-                a.DataAlerta,
-                a.DataResolucao
-            })
-            .FirstOrDefaultAsync();
-
+        var alerta = alertaService.GetById(id);
         if (alerta is null)
-        {
-            return NotFound(new
-            {
-                mensagem = $"Alerta de saúde com id {id} não encontrado."
-            });
-        }
+            return NotFound();
 
         return Ok(alerta);
     }
 
     [HttpGet("pet/{petId:long}")]
-    public async Task<IActionResult> GetByPet(long petId)
+    [ProducesResponseType(typeof(IReadOnlyList<AlertaSaudeResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public IActionResult GetByPet(long petId)
     {
-        var quantidadePets = await _context.Pets
-            .AsNoTracking()
-            .CountAsync(p => p.Id == petId);
-
-        if (quantidadePets == 0)
+        try
         {
-            return NotFound(new
-            {
-                mensagem = $"Pet com id {petId} não encontrado."
-            });
+            var alertas = alertaService.GetByPet(petId);
+            return Ok(alertas);
         }
-
-        var alertas = await _context.AlertasSaude
-            .AsNoTracking()
-            .Where(a => a.PetId == petId)
-            .OrderByDescending(a => a.DataAlerta)
-            .Select(a => new
-            {
-                a.Id,
-                a.PetId,
-                a.TipoAlerta,
-                a.NivelAlerta,
-                a.Mensagem,
-                a.ValorDetectado,
-                a.LimiteReferencia,
-                a.Resolvido,
-                a.DataAlerta,
-                a.DataResolucao
-            })
-            .ToListAsync();
-
-        return Ok(alertas);
+        catch (KeyNotFoundException)
+        {
+            return NotFound();
+        }
     }
 
     [HttpGet("clinica/{clinicaId:long}")]
-    public async Task<IActionResult> GetByClinica(long clinicaId, [FromQuery] bool? resolvido)
+    [ProducesResponseType(typeof(IReadOnlyList<AlertaSaudeResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public IActionResult GetByClinica(long clinicaId)
     {
-        var quantidadeClinicas = await _context.Clinicas
-            .AsNoTracking()
-            .CountAsync(c => c.Id == clinicaId);
-
-        if (quantidadeClinicas == 0)
+        try
         {
-            return NotFound(new
-            {
-                mensagem = $"Clínica com id {clinicaId} não encontrada."
-            });
+            var alertas = alertaService.GetByClinica(clinicaId);
+            return Ok(alertas);
         }
-
-        var query = _context.AlertasSaude
-            .AsNoTracking()
-            .Where(a => a.Pet != null && a.Pet.ClinicaId == clinicaId);
-
-        if (resolvido.HasValue)
+        catch (KeyNotFoundException)
         {
-            query = query.Where(a => a.Resolvido == resolvido.Value);
+            return NotFound();
         }
-
-        var alertas = await query
-            .OrderByDescending(a => a.DataAlerta)
-            .Select(a => new
-            {
-                a.Id,
-                a.PetId,
-                NomePet = a.Pet != null ? a.Pet.Nome : null,
-                a.TipoAlerta,
-                a.NivelAlerta,
-                a.Mensagem,
-                a.ValorDetectado,
-                a.LimiteReferencia,
-                a.Resolvido,
-                a.DataAlerta,
-                a.DataResolucao
-            })
-            .ToListAsync();
-
-        return Ok(alertas);
     }
 
-    [HttpPut("{id:long}/resolver")]
-    public async Task<IActionResult> Resolver(long id)
+    [HttpPost]
+    [ProducesResponseType(typeof(AlertaSaudeResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public IActionResult Create([FromBody] AlertaSaudeRequest request)
     {
-        var alerta = await _context.AlertasSaude
-            .FirstOrDefaultAsync(a => a.Id == id);
+        if (!ModelState.IsValid)
+            return BadRequest(ModelState);
 
-        if (alerta is null)
+        try
         {
-            return NotFound(new
-            {
-                mensagem = $"Alerta de saúde com id {id} não encontrado."
-            });
+            var alerta = alertaService.Create(request);
+            return Ok(alerta);
         }
-
-        if (alerta.Resolvido)
+        catch (KeyNotFoundException ex)
         {
-            return BadRequest(new
-            {
-                mensagem = "Este alerta já está resolvido."
-            });
+            return BadRequest(new { mensagem = ex.Message });
         }
+    }
 
-        alerta.Resolvido = true;
-        alerta.DataResolucao = DateTime.Now;
+    [HttpPut("{id:long}")]
+    [ProducesResponseType(typeof(AlertaSaudeResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public IActionResult Update(long id, [FromBody] AlertaSaudeRequest request)
+    {
+        if (!ModelState.IsValid)
+            return BadRequest(ModelState);
 
-        await _context.SaveChangesAsync();
+        try
+        {
+            var alerta = alertaService.Update(id, request);
+            if (alerta is null)
+                return NotFound();
+
+            return Ok(alerta);
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return BadRequest(new { mensagem = ex.Message });
+        }
+    }
+
+    [HttpDelete("{id:long}")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public IActionResult Delete(long id)
+    {
+        var resultado = alertaService.Delete(id);
+        if (!resultado)
+            return NotFound();
 
         return NoContent();
+    }
+    
+    [HttpPut("{id:long}/resolver")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public IActionResult Resolver(long id)
+    {
+        try
+        {
+            var resultado = alertaService.Resolve(id);
+            if (!resultado)
+                return NotFound();
+
+            return NoContent();
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { mensagem = ex.Message });
+        }
     }
 }

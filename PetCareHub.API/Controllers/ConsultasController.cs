@@ -1,174 +1,117 @@
 ﻿using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using PetCareHub.Infrastructure.Persistence;
+using PetCareHub.Application.DTOs;
+using PetCareHub.Application.Services.Interfaces;
 
 namespace PetCareHub.API.Controllers;
 
-[ApiController]
 [Route("api/[controller]")]
-public class ConsultasController : ControllerBase
+[ApiController]
+[Produces("application/json")]
+public class ConsultasController(IConsultaService consultaService) : ControllerBase
 {
-    private readonly PetCareHubContext _context;
-
-    public ConsultasController(PetCareHubContext context)
-    {
-        _context = context;
-    }
-
     [HttpGet]
-    public async Task<IActionResult> GetAll(
-        [FromQuery] long? clinicaId,
-        [FromQuery] long? petId,
-        [FromQuery] string? tipoConsulta,
-        [FromQuery] bool? retornoRecomendado)
+    [ProducesResponseType(typeof(IReadOnlyList<ConsultaResponse>), StatusCodes.Status200OK)]
+    public IActionResult GetAll()
     {
-        var query = _context.Consultas
-            .AsNoTracking()
-            .AsQueryable();
-
-        if (clinicaId.HasValue)
-        {
-            query = query.Where(c => c.ClinicaId == clinicaId.Value);
-        }
-
-        if (petId.HasValue)
-        {
-            query = query.Where(c => c.PetId == petId.Value);
-        }
-
-        if (!string.IsNullOrWhiteSpace(tipoConsulta))
-        {
-            query = query.Where(c => c.TipoConsulta.ToUpper() == tipoConsulta.ToUpper());
-        }
-
-        if (retornoRecomendado.HasValue)
-        {
-            query = query.Where(c => c.RetornoRecomendado == retornoRecomendado.Value);
-        }
-
-        var consultas = await query
-            .OrderByDescending(c => c.DataConsulta)
-            .Select(c => new
-            {
-                c.Id,
-                c.PetId,
-                c.ClinicaId,
-                c.DataConsulta,
-                c.TipoConsulta,
-                c.Descricao,
-                c.Diagnostico,
-                c.Valor,
-                c.RetornoRecomendado,
-                c.DataRetorno
-            })
-            .ToListAsync();
-
+        var consultas = consultaService.GetAll();
         return Ok(consultas);
     }
 
     [HttpGet("{id:long}")]
-    public async Task<IActionResult> GetById(long id)
+    [ProducesResponseType(typeof(ConsultaResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public IActionResult GetById(long id)
     {
-        var consulta = await _context.Consultas
-            .AsNoTracking()
-            .Where(c => c.Id == id)
-            .Select(c => new
-            {
-                c.Id,
-                c.PetId,
-                c.ClinicaId,
-                c.DataConsulta,
-                c.TipoConsulta,
-                c.Descricao,
-                c.Diagnostico,
-                c.Valor,
-                c.RetornoRecomendado,
-                c.DataRetorno
-            })
-            .FirstOrDefaultAsync();
-
+        var consulta = consultaService.GetById(id);
         if (consulta is null)
-        {
-            return NotFound(new
-            {
-                mensagem = $"Consulta com id {id} não encontrada."
-            });
-        }
+            return NotFound();
 
         return Ok(consulta);
     }
 
     [HttpGet("clinica/{clinicaId:long}")]
-    public async Task<IActionResult> GetByClinica(long clinicaId)
+    [ProducesResponseType(typeof(IReadOnlyList<ConsultaResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public IActionResult GetByClinica(long clinicaId)
     {
-        var quantidadeClinicas = await _context.Clinicas
-            .AsNoTracking()
-            .CountAsync(c => c.Id == clinicaId);
-
-        if (quantidadeClinicas == 0)
+        try
         {
-            return NotFound(new
-            {
-                mensagem = $"Clínica com id {clinicaId} não encontrada."
-            });
+            var consultas = consultaService.GetByClinica(clinicaId);
+            return Ok(consultas);
         }
-
-        var consultas = await _context.Consultas
-            .AsNoTracking()
-            .Where(c => c.ClinicaId == clinicaId)
-            .OrderByDescending(c => c.DataConsulta)
-            .Select(c => new
-            {
-                c.Id,
-                c.PetId,
-                c.ClinicaId,
-                c.DataConsulta,
-                c.TipoConsulta,
-                c.Descricao,
-                c.Diagnostico,
-                c.Valor,
-                c.RetornoRecomendado,
-                c.DataRetorno
-            })
-            .ToListAsync();
-
-        return Ok(consultas);
+        catch (KeyNotFoundException)
+        {
+            return NotFound();
+        }
+    }
+    
+    [HttpGet("pet/{petId:long}")]
+    [ProducesResponseType(typeof(IReadOnlyList<ConsultaResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public IActionResult GetByPet(long petId)
+    {
+        try
+        {
+            var consultas = consultaService.GetByPet(petId);
+            return Ok(consultas);
+        }
+        catch (KeyNotFoundException)
+        {
+            return NotFound();
+        }
     }
 
-    [HttpGet("pet/{petId:long}")]
-    public async Task<IActionResult> GetByPet(long petId)
+    [HttpPost]
+    [ProducesResponseType(typeof(ConsultaResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public IActionResult Create([FromBody] ConsultaRequest request)
     {
-        var quantidadePets = await _context.Pets
-            .AsNoTracking()
-            .CountAsync(p => p.Id == petId);
+        if (!ModelState.IsValid)
+            return BadRequest(ModelState);
 
-        if (quantidadePets == 0)
+        try
         {
-            return NotFound(new
-            {
-                mensagem = $"Pet com id {petId} não encontrado."
-            });
+            var consulta = consultaService.Create(request);
+            return Ok(consulta);
         }
+        catch (KeyNotFoundException ex)
+        {
+            return BadRequest(new { mensagem = ex.Message });
+        }
+    }
 
-        var consultas = await _context.Consultas
-            .AsNoTracking()
-            .Where(c => c.PetId == petId)
-            .OrderByDescending(c => c.DataConsulta)
-            .Select(c => new
-            {
-                c.Id,
-                c.PetId,
-                c.ClinicaId,
-                c.DataConsulta,
-                c.TipoConsulta,
-                c.Descricao,
-                c.Diagnostico,
-                c.Valor,
-                c.RetornoRecomendado,
-                c.DataRetorno
-            })
-            .ToListAsync();
+    [HttpPut("{id:long}")]
+    [ProducesResponseType(typeof(ConsultaResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public IActionResult Update(long id, [FromBody] ConsultaRequest request)
+    {
+        if (!ModelState.IsValid)
+            return BadRequest(ModelState);
 
-        return Ok(consultas);
+        try
+        {
+            var consulta = consultaService.Update(id, request);
+            if (consulta is null)
+                return NotFound();
+
+            return Ok(consulta);
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return BadRequest(new { mensagem = ex.Message });
+        }
+    }
+    
+    [HttpDelete("{id:long}")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public IActionResult Delete(long id)
+    {
+        var resultado = consultaService.Delete(id);
+        if (!resultado)
+            return NotFound();
+
+        return NoContent();
     }
 }
