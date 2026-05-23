@@ -10,13 +10,13 @@ public class PetCareHubContext : DbContext
     {
     }
 
-    public DbSet<Clinica> Clinicas => Set<Clinica>();
-    public DbSet<Pet> Pets => Set<Pet>();
-    public DbSet<Consulta> Consultas => Set<Consulta>();
-    public DbSet<EventoPreventivo> EventosPreventivos => Set<EventoPreventivo>();
-    public DbSet<LeituraSensor> LeiturasSensor => Set<LeituraSensor>();
-    public DbSet<AlertaSaude> AlertasSaude => Set<AlertaSaude>();
-    public DbSet<ScoreSaude> ScoresSaude => Set<ScoreSaude>();
+    public DbSet<Responsavel> Responsaveis { get; set; }
+    public DbSet<Consulta> Consultas { get; set; }
+    public DbSet<AlertaSaude> AlertasSaude { get; set; }
+    public DbSet<Pet> Pets { get; set; }
+    public DbSet<Clinica> Clinicas { get; set; }
+    public DbSet<ScoreSaude> ScoresSaude { get; set; }
+    public DbSet<EventoPreventivo> EventosPreventivos { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
