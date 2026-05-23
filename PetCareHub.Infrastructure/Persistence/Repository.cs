@@ -7,6 +7,7 @@ public class Repository<TEntity>(PetCareHubContext context)
     : IRepository<TEntity> where TEntity : class
 {
     private readonly DbSet<TEntity> _dbSet = context.Set<TEntity>();
+    protected readonly PetCareHubContext Context = context;
 
     public IEnumerable<TEntity> GetAll() => 
         _dbSet.AsNoTracking().ToList();
@@ -14,11 +15,17 @@ public class Repository<TEntity>(PetCareHubContext context)
     public TEntity? GetById(long id) => 
         _dbSet.Find(id);
 
-    public void Add(TEntity entity) => 
+    public void Add(TEntity entity)
+    {
         _dbSet.Add(entity);
+        Context.SaveChanges();
+    }
 
-    public void Update(TEntity entity) => 
+    public void Update(TEntity entity)
+    {
         _dbSet.Update(entity);
+        Context.SaveChanges();
+    }
 
     public bool Delete(long id)
     {
@@ -27,6 +34,7 @@ public class Repository<TEntity>(PetCareHubContext context)
             return false;
 
         _dbSet.Remove(entity);
+        Context.SaveChanges();
         return true;
     }
 

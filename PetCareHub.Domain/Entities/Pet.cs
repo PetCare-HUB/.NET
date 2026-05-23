@@ -5,6 +5,7 @@ public class Pet
     public long Id { get; set; }
 
     public long ResponsavelId { get; set; }
+    public Responsavel? Responsavel { get; set; }
 
     public long ClinicaId { get; set; }
 
