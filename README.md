@@ -1,6 +1,6 @@
 # PetCare Hub — API .NET Dashboard Clínico
 
-API RESTful desenvolvida em **.NET Core .NET 9** para a disciplina **Advanced Business Development with .NET**, dentro do Challenge FIAP 2026 — CLYVO VET.
+API RESTful desenvolvida em **.NET 9** para a disciplina **Advanced Business Development with .NET**, dentro do Challenge FIAP 2026 — CLYVO VET.
 
 A API representa o **dashboard B2B da clínica veterinária**, permitindo consultar informações clínicas, pets, alertas de saúde, consultas, scores e indicadores operacionais.
 
@@ -30,13 +30,13 @@ A API .NET é responsável por servir os dados do **dashboard da clínica veteri
 
 A aplicação permite:
 
-- Consultar clínicas cadastradas;
-- Gerenciar clínicas via CRUD;
-- Consultar pets da clínica;
-- Consultar consultas clínicas;
-- Consultar alertas de saúde;
+- Gerenciar clínicas via CRUD completo;
+- Gerenciar pets via CRUD completo (com filtros por clínica, espécie e situação);
+- Gerenciar consultas via CRUD completo (com filtros por clínica, pet, tipo e retorno);
+- Gerenciar alertas de saúde via CRUD completo (com filtros por pet, nível e situação);
 - Resolver alertas;
-- Consultar scores de saúde;
+- Consultar responsáveis pelos pets;
+- Consultar scores de saúde com filtros por categoria e faixa de score;
 - Exibir métricas consolidadas no dashboard.
 
 ---
@@ -44,115 +44,77 @@ A aplicação permite:
 ## Tecnologias Utilizadas
 
 - .NET 9
-- ASP.NET Core Web API
-- Controllers
+- ASP.NET Core Web API (Controllers)
 - Entity Framework Core 9
-- Oracle Entity Framework Core
+- Oracle.EntityFrameworkCore 9.23
 - Oracle Database FIAP
-- Swagger / OpenAPI
-- C#
+- Swagger / OpenAPI (Swashbuckle)
+- C# 13 (records, primary constructors)
 - Git e GitHub
 
 ---
 
 ## Arquitetura do Projeto
 
-O projeto foi organizado em camadas, seguindo uma estrutura próxima de Clean Architecture:
+O projeto foi organizado em camadas, seguindo Clean Architecture:
 
 ```txt
 PetCareHub
-├── PetCareHub.API
+├── PetCareHub.API                 ← Endpoints HTTP (Controllers + Swagger)
 │   ├── Controllers
+│   ├── Exceptions                 ← GlobalExceptionHandler
+│   ├── Extensions                 ← Registro de serviços
 │   ├── Program.cs
 │   └── appsettings.json
 │
-├── PetCareHub.Application
+├── PetCareHub.Application         ← Casos de uso (Services) + Contratos
+│   ├── DTOs                       ← Requests + Responses (records)
+│   ├── Repositories               ← Interfaces de repositório
+│   └── Services
+│       ├── Interfaces
+│       └── Implementations
 │
-├── PetCareHub.Domain
+├── PetCareHub.Domain              ← Entidades de domínio (puras)
 │   └── Entities
 │
-└── PetCareHub.Infrastructure
-    ├── Persistence
-    │   ├── Configurations
-    │   ├── Migrations
-    │   └── PetCareHubContext.cs
-    └── DependencyInjection.cs
+└── PetCareHub.Infrastructure      ← Persistência (EF Core + Oracle)
+    └── Persistence
+        ├── Configurations         ← Fluent API por entidade
+        ├── Migrations
+        ├── Repositories
+        ├── PetCareHubContext.cs
+        └── Repository.cs          ← Repositório genérico
 ```
-
----
-
-## Responsabilidade das Camadas
-
-### PetCareHub.API
-
-Camada responsável pela exposição dos endpoints HTTP.
-
-Contém:
-
-- Controllers;
-- Swagger;
-- Configuração da aplicação;
-- Rotas REST.
-
-### PetCareHub.Domain
-
-Camada responsável pelas entidades principais do domínio.
-
-Entidades:
-
-- Clinica
-- Pet
-- Consulta
-- EventoPreventivo
-- LeituraSensor
-- AlertaSaude
-- ScoreSaude
-
-### PetCareHub.Infrastructure
-
-Camada responsável pela integração com o banco Oracle.
-
-Contém:
-
-- DbContext;
-- Configurações Fluent API;
-- Migrations;
-- Configuração do Oracle via EF Core.
 
 ---
 
 ## Banco de Dados
 
-A API utiliza o banco Oracle da FIAP, compartilhado com a modelagem desenvolvida na disciplina de Database.
+A API utiliza o banco Oracle da FIAP, compartilhado com a modelagem da disciplina de Database.
 
 Tabelas utilizadas pela API:
 
-- CLINICA
-- PET
-- CONSULTA
-- EVENTO_PREVENTIVO
-- LEITURA_SENSOR
-- ALERTA_SAUDE
-- SCORE_SAUDE
-
-O mapeamento entre C# e Oracle foi feito com **Fluent API**, respeitando os nomes reais das tabelas e colunas do banco.
-
-Exemplo:
-
 ```txt
-Classe C#       Tabela Oracle
-Clinica         CLINICA
-Pet             PET
-Consulta        CONSULTA
-AlertaSaude     ALERTA_SAUDE
-ScoreSaude      SCORE_SAUDE
+Classe C#         Tabela Oracle
+Clinica           CLINICA
+Responsavel       RESPONSAVEL
+Pet               PET
+Consulta          CONSULTA
+AlertaSaude       ALERTA_SAUDE
+ScoreSaude        SCORE_SAUDE
+EventoPreventivo  EVENTO_PREVENTIVO
+LeituraSensor     LEITURA_SENSOR
 ```
+
+O mapeamento entre C# e Oracle é feito com **Fluent API** em `PetCareHub.Infrastructure/Persistence/Configurations`, respeitando os nomes reais das tabelas e colunas.
 
 ---
 
 ## Configuração do Banco Oracle
 
-Por segurança, as credenciais reais não devem ser versionadas no GitHub.
+Por segurança, as credenciais reais **não devem ser versionadas** no GitHub.
+
+A connection string padrão é lida da chave `ConnectionStrings:DefaultConnection`.
 
 Crie o arquivo:
 
@@ -160,12 +122,12 @@ Crie o arquivo:
 PetCareHub.API/appsettings.Development.json
 ```
 
-Com o seguinte formato:
+Com o seguinte conteúdo:
 
 ```json
 {
   "ConnectionStrings": {
-    "OracleConnection": "User Id=SEU_USUARIO;Password=SUA_SENHA;Data Source=(DESCRIPTION=(ADDRESS=(PROTOCOL=TCP)(HOST=oracle.fiap.com.br)(PORT=1521))(CONNECT_DATA=(SID=orcl)))"
+    "DefaultConnection": "User Id=SEU_USUARIO;Password=SUA_SENHA;Data Source=(DESCRIPTION=(ADDRESS=(PROTOCOL=TCP)(HOST=oracle.fiap.com.br)(PORT=1521))(CONNECT_DATA=(SID=orcl)))"
   },
   "Logging": {
     "LogLevel": {
@@ -176,21 +138,7 @@ Com o seguinte formato:
 }
 ```
 
-O arquivo `appsettings.Development.json` deve estar no `.gitignore`.
-
-Exemplo de `.gitignore`:
-
-```gitignore
-bin/
-obj/
-.vs/
-.idea/
-*.user
-*.suo
-*.rsuser
-*.log
-appsettings.Development.json
-```
+O arquivo `appsettings.Development.json` está no `.gitignore` e não deve ser commitado.
 
 ---
 
@@ -209,30 +157,40 @@ cd PetCareHub
 dotnet restore
 ```
 
-### 3. Compilar o projeto
+### 3. Aplicar as migrations no banco (apenas em ambiente novo)
+
+> Se o schema Oracle da FIAP já possuir as tabelas criadas pela modelagem de Database, pule este passo.
+
+```bash
+dotnet ef database update --project PetCareHub.Infrastructure --startup-project PetCareHub.API
+```
+
+### 4. Compilar o projeto
 
 ```bash
 dotnet build
 ```
 
-### 4. Executar a API
+### 5. Executar a API
 
 ```bash
 dotnet run --project PetCareHub.API
 ```
 
-A aplicação será iniciada em uma URL semelhante a:
+A aplicação será iniciada em:
 
 ```txt
 http://localhost:5062
 ```
 
-### 5. Acessar o Swagger
+### 6. Acessar o Swagger
+
+O Swagger é servido na **raiz** da aplicação (não em `/swagger`), pois `RoutePrefix` está configurado como vazio.
 
 Abra no navegador:
 
 ```txt
-http://localhost:5062/swagger
+http://localhost:5062/
 ```
 
 ---
@@ -241,178 +199,105 @@ http://localhost:5062/swagger
 
 O projeto utiliza Entity Framework Core Migrations.
 
-Para criar a migration inicial:
+Para criar uma nova migration:
 
 ```bash
-dotnet ef migrations add InitialCreate --project PetCareHub.Infrastructure --startup-project PetCareHub.API --output-dir Persistence/Migrations
+dotnet ef migrations add NomeDaMigration --project PetCareHub.Infrastructure --startup-project PetCareHub.API --output-dir Persistence/Migrations
 ```
 
-Observação:
-
-Como o banco Oracle da disciplina de Database já possui as tabelas criadas, o comando abaixo **não deve ser executado no schema real caso as tabelas já existam**:
+Para aplicar migrations no banco:
 
 ```bash
 dotnet ef database update --project PetCareHub.Infrastructure --startup-project PetCareHub.API
 ```
 
-Esse comando deve ser usado apenas em um schema vazio ou ambiente novo.
-
 ---
 
 ## Endpoints Disponíveis
 
-# Clínicas
+Todos os endpoints seguem o padrão REST e estão documentados no Swagger.
 
-## Listar clínicas
+### 🏥 Clínicas
 
-```http
-GET /api/Clinicas
-```
+| Método | Rota | Descrição |
+|---|---|---|
+| `GET`    | `/api/Clinicas`              | Lista todas as clínicas |
+| `GET`    | `/api/Clinicas/{id}`         | Busca uma clínica pelo ID |
+| `POST`   | `/api/Clinicas`              | Cria uma nova clínica |
+| `PUT`    | `/api/Clinicas/{id}`         | Atualiza uma clínica |
+| `DELETE` | `/api/Clinicas/{id}`         | Remove uma clínica (se não tiver pets vinculados) |
 
-Retorno:
-
-```http
-200 OK
-```
-
----
-
-## Buscar clínica por ID
-
-```http
-GET /api/Clinicas/{id}
-```
-
-Retornos:
-
-```http
-200 OK
-404 Not Found
-```
-
----
-
-## Criar clínica
-
-```http
-POST /api/Clinicas
-```
-
-Body:
+**Exemplo POST:**
 
 ```json
 {
   "nome": "Clinica Teste DotNet",
-  "cnpj": "99999999000199"
+  "cnpj": "99999999000199",
   "email": "teste@petcare.com",
   "telefone": "(11) 99999-9999",
-  "endereco": "Rua Teste, 123"
-}
-```
-
-Retornos:
-
-```http
-201 Created
-400 Bad Request
-```
-
----
-
-## Atualizar clínica
-
-```http
-PUT /api/Clinicas/{id}
-```
-
-Body:
-
-```json
-{
-  "nome": "Clinica Teste DotNet Atualizada",
-  "cnpj": "99.999.999/0001-99",
-  "email": "atualizada@petcare.com",
-  "telefone": "(11) 98888-8888",
-  "endereco": "Rua Atualizada, 456",
+  "endereco": "Rua Teste, 123",
   "ativo": true
 }
 ```
 
-Retornos:
-
-```http
-200 OK
-400 Bad Request
-404 Not Found
-```
+> **Importante:** o campo `cnpj` deve ter exatamente **14 caracteres**, somente números (sem máscara).
 
 ---
 
-## Remover clínica
+### 🐶 Pets
 
-```http
-DELETE /api/Clinicas/{id}
+| Método | Rota | Descrição |
+|---|---|---|
+| `GET`    | `/api/Pets`                          | Lista pets (filtros opcionais) |
+| `GET`    | `/api/Pets/{id}`                     | Busca pet pelo ID |
+| `GET`    | `/api/Pets/clinica/{clinicaId}`      | Lista pets de uma clínica |
+| `POST`   | `/api/Pets`                          | Cadastra um novo pet |
+| `PUT`    | `/api/Pets/{id}`                     | Atualiza um pet |
+| `DELETE` | `/api/Pets/{id}`                     | Remove um pet |
+
+**Filtros opcionais no GET:**
+
 ```
-
-Retornos:
-
-```http
-204 No Content
-400 Bad Request
-404 Not Found
-```
-
-Observação:
-
-A API não permite remover uma clínica que possui pets vinculados.
-
----
-
-# Pets
-
-## Listar pets
-
-```http
-GET /api/Pets
-```
-
-Filtros opcionais:
-
-```http
 GET /api/Pets?clinicaId=1
 GET /api/Pets?especie=CAO
 GET /api/Pets?ativo=true
+GET /api/Pets?clinicaId=1&especie=GATO&ativo=true
+```
+
+**Exemplo POST:**
+
+```json
+{
+  "responsavelId": 1,
+  "clinicaId": 1,
+  "nome": "Rex",
+  "especie": "CAO",
+  "raca": "Labrador",
+  "dataNascimento": "2022-05-10",
+  "pesoKg": 18.5,
+  "sexo": "M",
+  "condicoesCronicas": null,
+  "ativo": true
+}
 ```
 
 ---
 
-## Buscar pet por ID
+### 🩺 Consultas
 
-```http
-GET /api/Pets/{id}
+| Método | Rota | Descrição |
+|---|---|---|
+| `GET`    | `/api/Consultas`                       | Lista consultas (filtros opcionais) |
+| `GET`    | `/api/Consultas/{id}`                  | Busca consulta pelo ID |
+| `GET`    | `/api/Consultas/clinica/{clinicaId}`   | Lista consultas de uma clínica |
+| `GET`    | `/api/Consultas/pet/{petId}`           | Lista consultas de um pet |
+| `POST`   | `/api/Consultas`                       | Cria uma consulta |
+| `PUT`    | `/api/Consultas/{id}`                  | Atualiza uma consulta |
+| `DELETE` | `/api/Consultas/{id}`                  | Remove uma consulta |
+
+**Filtros opcionais no GET:**
+
 ```
-
----
-
-## Listar pets por clínica
-
-```http
-GET /api/Pets/clinica/{clinicaId}
-```
-
----
-
-# Consultas
-
-## Listar consultas
-
-```http
-GET /api/Consultas
-```
-
-Filtros opcionais:
-
-```http
 GET /api/Consultas?clinicaId=1
 GET /api/Consultas?petId=1
 GET /api/Consultas?tipoConsulta=CHECKUP
@@ -421,41 +306,22 @@ GET /api/Consultas?retornoRecomendado=true
 
 ---
 
-## Buscar consulta por ID
+### 🚨 Alertas de Saúde
 
-```http
-GET /api/Consultas/{id}
+| Método | Rota | Descrição |
+|---|---|---|
+| `GET`    | `/api/AlertasSaude`                       | Lista alertas (filtros opcionais) |
+| `GET`    | `/api/AlertasSaude/{id}`                  | Busca alerta pelo ID |
+| `GET`    | `/api/AlertasSaude/pet/{petId}`           | Lista alertas de um pet |
+| `GET`    | `/api/AlertasSaude/clinica/{clinicaId}`   | Lista alertas de uma clínica |
+| `POST`   | `/api/AlertasSaude`                       | Cria um alerta |
+| `PUT`    | `/api/AlertasSaude/{id}`                  | Atualiza um alerta |
+| `PUT`    | `/api/AlertasSaude/{id}/resolver`         | Marca alerta como resolvido |
+| `DELETE` | `/api/AlertasSaude/{id}`                  | Remove um alerta |
+
+**Filtros opcionais no GET:**
+
 ```
-
----
-
-## Listar consultas por clínica
-
-```http
-GET /api/Consultas/clinica/{clinicaId}
-```
-
----
-
-## Listar consultas por pet
-
-```http
-GET /api/Consultas/pet/{petId}
-```
-
----
-
-# Alertas de Saúde
-
-## Listar alertas
-
-```http
-GET /api/AlertasSaude
-```
-
-Filtros opcionais:
-
-```http
 GET /api/AlertasSaude?petId=1
 GET /api/AlertasSaude?nivelAlerta=CRITICO
 GET /api/AlertasSaude?resolvido=false
@@ -463,63 +329,19 @@ GET /api/AlertasSaude?resolvido=false
 
 ---
 
-## Buscar alerta por ID
+### 📊 Scores de Saúde
 
-```http
-GET /api/AlertasSaude/{id}
+| Método | Rota | Descrição |
+|---|---|---|
+| `GET` | `/api/ScoresSaude`                          | Lista scores (filtros opcionais) |
+| `GET` | `/api/ScoresSaude/{id}`                     | Busca score pelo ID |
+| `GET` | `/api/ScoresSaude/pet/{petId}`              | Histórico de scores de um pet |
+| `GET` | `/api/ScoresSaude/pet/{petId}/atual`        | Score atual (mais recente) do pet |
+| `GET` | `/api/ScoresSaude/clinica/{clinicaId}`      | Scores dos pets de uma clínica |
+
+**Filtros opcionais no GET:**
+
 ```
-
----
-
-## Listar alertas por pet
-
-```http
-GET /api/AlertasSaude/pet/{petId}
-```
-
----
-
-## Listar alertas por clínica
-
-```http
-GET /api/AlertasSaude/clinica/{clinicaId}
-```
-
-Exemplo:
-
-```http
-GET /api/AlertasSaude/clinica/1?resolvido=false
-```
-
----
-
-## Resolver alerta
-
-```http
-PUT /api/AlertasSaude/{id}/resolver
-```
-
-Retornos:
-
-```http
-204 No Content
-400 Bad Request
-404 Not Found
-```
-
----
-
-# Scores de Saúde
-
-## Listar scores
-
-```http
-GET /api/ScoresSaude
-```
-
-Filtros opcionais:
-
-```http
 GET /api/ScoresSaude?petId=1
 GET /api/ScoresSaude?clinicaId=1
 GET /api/ScoresSaude?categoria=VERMELHO
@@ -528,146 +350,75 @@ GET /api/ScoresSaude?scoreMin=0&scoreMax=50
 
 ---
 
-## Buscar score por ID
+### 👤 Responsáveis
 
-```http
-GET /api/ScoresSaude/{id}
-```
-
----
-
-## Listar scores por pet
-
-```http
-GET /api/ScoresSaude/pet/{petId}
-```
+| Método | Rota | Descrição |
+|---|---|---|
+| `GET` | `/api/Responsaveis`                       | Lista todos os responsáveis |
+| `GET` | `/api/Responsaveis/{id}`                  | Busca responsável pelo ID |
+| `GET` | `/api/Responsaveis/clinica/{clinicaId}`   | Lista responsáveis com pets na clínica |
 
 ---
 
-## Buscar score atual do pet
+### 📈 Dashboard Clínico
 
-```http
-GET /api/ScoresSaude/pet/{petId}/atual
-```
-
----
-
-## Listar scores por clínica
-
-```http
-GET /api/ScoresSaude/clinica/{clinicaId}
-```
-
----
-
-# Dashboard Clínico
-
-## Resumo da clínica
-
-```http
-GET /api/Dashboard/clinicas/{clinicaId}
-```
-
-Retorna:
-
-- Dados da clínica;
-- Total de pets;
-- Pets ativos;
-- Alertas abertos;
-- Consultas realizadas;
-- Eventos pendentes;
-- Score médio;
-- Pets em risco.
-
----
-
-## Pets em risco
-
-```http
-GET /api/Dashboard/clinicas/{clinicaId}/pets-em-risco
-```
-
----
-
-## Alertas abertos
-
-```http
-GET /api/Dashboard/clinicas/{clinicaId}/alertas-abertos
-```
-
----
-
-## Consultas recentes
-
-```http
-GET /api/Dashboard/clinicas/{clinicaId}/consultas-recentes
-```
-
----
-
-## Eventos preventivos pendentes
-
-```http
-GET /api/Dashboard/clinicas/{clinicaId}/eventos-pendentes
-```
+| Método | Rota | Descrição |
+|---|---|---|
+| `GET` | `/api/Dashboard/clinicas/{clinicaId}`                       | Resumo geral da clínica |
+| `GET` | `/api/Dashboard/clinicas/{clinicaId}/pets-em-risco`         | Lista de pets em risco (categoria VERMELHO) |
+| `GET` | `/api/Dashboard/clinicas/{clinicaId}/alertas-abertos`       | Alertas ainda não resolvidos |
+| `GET` | `/api/Dashboard/clinicas/{clinicaId}/consultas-recentes`    | Últimas 10 consultas |
+| `GET` | `/api/Dashboard/clinicas/{clinicaId}/eventos-pendentes`     | Eventos preventivos com status PENDENTE |
 
 ---
 
 ## Retornos HTTP Implementados
 
-A API utiliza os seguintes retornos HTTP:
-
-```txt
-200 OK              Consulta realizada com sucesso
-201 Created         Recurso criado com sucesso
-204 No Content      Remoção ou atualização sem corpo de resposta
-400 Bad Request     Dados inválidos ou regra de negócio violada
-404 Not Found       Recurso não encontrado
-500 Internal Error  Erro inesperado
-```
+| Código | Significado |
+|---|---|
+| `200 OK` | Consulta realizada com sucesso |
+| `201 Created` | Recurso criado com sucesso (POST) |
+| `204 No Content` | Remoção ou ação executada sem corpo de resposta |
+| `400 Bad Request` | Dados inválidos ou regra de negócio violada |
+| `404 Not Found` | Recurso não encontrado |
+| `500 Internal Server Error` | Erro inesperado (capturado pelo `GlobalExceptionHandler`) |
 
 ---
 
-## Exemplos de Teste no Swagger
+## Tratamento Global de Exceções
 
-### Criar uma clínica
+Implementado em `PetCareHub.API/Exceptions/GlobalExceptionHandler.cs` usando `IExceptionHandler`.
 
-```http
-POST /api/Clinicas
+Mapeamento de exceções para códigos HTTP:
+
+| Exceção C# | Código HTTP |
+|---|---|
+| `ArgumentException`, `ArgumentNullException` | 400 |
+| `InvalidOperationException` | 400 |
+| `KeyNotFoundException` | 404 |
+| `UnauthorizedAccessException` | 401 |
+| (qualquer outra) | 500 |
+
+A resposta segue o padrão **RFC 7807 ProblemDetails**.
+
+---
+
+## Documentação Swagger
+
+O Swagger é gerado automaticamente a partir dos comentários XML dos controllers e dos atributos `[ProducesResponseType]`.
+
+Para acessar:
+
+```txt
+http://localhost:5062/
 ```
 
-```json
-{
-  "nome": "Clinica Teste DotNet",
-  "cnpj": "99.999.999/0001-99",
-  "email": "teste@petcare.com",
-  "telefone": "(11) 99999-9999",
-  "endereco": "Rua Teste, 123"
-}
-```
+A documentação inclui:
 
-### Atualizar uma clínica
-
-```http
-PUT /api/Clinicas/{id}
-```
-
-```json
-{
-  "nome": "Clinica Teste DotNet Atualizada",
-  "cnpj": "99.999.999/0001-99",
-  "email": "atualizada@petcare.com",
-  "telefone": "(11) 98888-8888",
-  "endereco": "Rua Atualizada, 456",
-  "ativo": true
-}
-```
-
-### Resolver um alerta
-
-```http
-PUT /api/AlertasSaude/{id}/resolver
-```
+- Resumo de cada endpoint;
+- Parâmetros esperados;
+- Códigos de retorno possíveis;
+- Schemas dos DTOs.
 
 ---
 
@@ -688,6 +439,9 @@ Swagger: funcionando
 EF Core: configurado
 Migrations: criadas
 CRUD de clínicas: funcional
+CRUD de pets: funcional
+CRUD de consultas: funcional
+CRUD de alertas: funcional
 Dashboard clínico: funcional
 ```
 
@@ -699,5 +453,3 @@ Dashboard clínico: funcional
 |---|---|---|---|---|
 | Alexander Dennis Isidro Mamani | 565554 | 2TDSPG | [alex-isidro](https://github.com/alex-isidro) | [LinkedIn](https://www.linkedin.com/in/alexander-dennis-a3b48824b/) |
 | Kelson Zhang | 563748 | 2TDSPG | [KelsonZh0](https://github.com/KelsonZh0) | [LinkedIn](https://www.linkedin.com/in/kelson-zhang-211456323/) |
-
----

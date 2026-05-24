@@ -6,6 +6,8 @@ public interface IAlertaSaudeService
 {
     IReadOnlyList<AlertaSaudeResponse> GetAll();
 
+    IReadOnlyList<AlertaSaudeResponse> GetFiltered(long? petId, string? nivelAlerta, bool? resolvido);
+
     AlertaSaudeResponse? GetById(long id);
 
     IReadOnlyList<AlertaSaudeResponse> GetByPet(long petId);

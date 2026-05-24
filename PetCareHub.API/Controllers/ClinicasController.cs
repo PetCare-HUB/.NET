@@ -31,7 +31,7 @@ public class ClinicasController(IClinicaService clinicaService) : ControllerBase
     }
 
     [HttpPost]
-    [ProducesResponseType(typeof(ClinicaResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ClinicaResponse), StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public IActionResult Create([FromBody] ClinicaRequest request)
     {
@@ -41,18 +41,18 @@ public class ClinicasController(IClinicaService clinicaService) : ControllerBase
         try
         {
             var clinica = clinicaService.Create(request);
-            return Ok(clinica);
+            return CreatedAtAction(nameof(GetById), new { id = clinica.Id }, clinica);
         }
         catch (InvalidOperationException ex)
         {
             return BadRequest(new { mensagem = ex.Message });
         }
     }
-
+    
     [HttpPut("{id:long}")]
     [ProducesResponseType(typeof(ClinicaResponse), StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
     public IActionResult Update(long id, [FromBody] ClinicaRequest request)
     {
         if (!ModelState.IsValid)
@@ -71,11 +71,11 @@ public class ClinicasController(IClinicaService clinicaService) : ControllerBase
             return BadRequest(new { mensagem = ex.Message });
         }
     }
-
+    
     [HttpDelete("{id:long}")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
     public IActionResult Delete(long id)
     {
         try

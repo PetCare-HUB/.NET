@@ -5,15 +5,11 @@ using PetCareHub.Domain.Entities;
 
 namespace PetCareHub.Application.Services.Implementations;
 
-/// <summary>
-/// Orquestra os casos de uso de consultas.
-/// </summary>
 public sealed class ConsultaService(
     IConsultaRepository consultaRepository,
     IPetRepository petRepository,
     IClinicaRepository clinicaRepository) : IConsultaService
 {
-    /// <inheritdoc />
     public IReadOnlyList<ConsultaResponse> GetAll()
     {
         return consultaRepository
@@ -22,14 +18,24 @@ public sealed class ConsultaService(
             .ToList();
     }
 
-    /// <inheritdoc />
+    public IReadOnlyList<ConsultaResponse> GetFiltered(
+        long? clinicaId,
+        long? petId,
+        string? tipoConsulta,
+        bool? retornoRecomendado)
+    {
+        return consultaRepository
+            .GetFiltered(clinicaId, petId, tipoConsulta, retornoRecomendado)
+            .Select(ConsultaResponse.FromDomain)
+            .ToList();
+    }
+
     public ConsultaResponse? GetById(long id)
     {
         var consulta = consultaRepository.GetById(id);
         return consulta is null ? null : ConsultaResponse.FromDomain(consulta);
     }
 
-    /// <inheritdoc />
     public IReadOnlyList<ConsultaResponse> GetByClinica(long clinicaId)
     {
         if (!clinicaRepository.Exists(clinicaId))
@@ -41,7 +47,6 @@ public sealed class ConsultaService(
             .ToList();
     }
 
-    /// <inheritdoc />
     public IReadOnlyList<ConsultaResponse> GetByPet(long petId)
     {
         if (!petRepository.Exists(petId))
@@ -53,7 +58,6 @@ public sealed class ConsultaService(
             .ToList();
     }
 
-    /// <inheritdoc />
     public ConsultaResponse Create(ConsultaRequest request)
     {
         if (!petRepository.Exists(request.PetId))
@@ -80,7 +84,6 @@ public sealed class ConsultaService(
         return ConsultaResponse.FromDomain(consulta);
     }
 
-    /// <inheritdoc />
     public ConsultaResponse? Update(long id, ConsultaRequest request)
     {
         var consulta = consultaRepository.GetById(id);
@@ -108,7 +111,6 @@ public sealed class ConsultaService(
         return ConsultaResponse.FromDomain(consulta);
     }
 
-    /// <inheritdoc />
     public bool Delete(long id)
     {
         return consultaRepository.Delete(id);

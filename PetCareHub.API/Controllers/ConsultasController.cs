@@ -9,11 +9,22 @@ namespace PetCareHub.API.Controllers;
 [Produces("application/json")]
 public class ConsultasController(IConsultaService consultaService) : ControllerBase
 {
+
     [HttpGet]
     [ProducesResponseType(typeof(IReadOnlyList<ConsultaResponse>), StatusCodes.Status200OK)]
-    public IActionResult GetAll()
+    public IActionResult GetAll(
+        [FromQuery] long? clinicaId,
+        [FromQuery] long? petId,
+        [FromQuery] string? tipoConsulta,
+        [FromQuery] bool? retornoRecomendado)
     {
-        var consultas = consultaService.GetAll();
+        var temFiltro = clinicaId.HasValue || petId.HasValue
+            || !string.IsNullOrWhiteSpace(tipoConsulta) || retornoRecomendado.HasValue;
+
+        var consultas = temFiltro
+            ? consultaService.GetFiltered(clinicaId, petId, tipoConsulta, retornoRecomendado)
+            : consultaService.GetAll();
+
         return Ok(consultas);
     }
 
@@ -44,7 +55,7 @@ public class ConsultasController(IConsultaService consultaService) : ControllerB
             return NotFound();
         }
     }
-    
+
     [HttpGet("pet/{petId:long}")]
     [ProducesResponseType(typeof(IReadOnlyList<ConsultaResponse>), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -62,7 +73,7 @@ public class ConsultasController(IConsultaService consultaService) : ControllerB
     }
 
     [HttpPost]
-    [ProducesResponseType(typeof(ConsultaResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ConsultaResponse), StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public IActionResult Create([FromBody] ConsultaRequest request)
     {
@@ -72,7 +83,7 @@ public class ConsultasController(IConsultaService consultaService) : ControllerB
         try
         {
             var consulta = consultaService.Create(request);
-            return Ok(consulta);
+            return CreatedAtAction(nameof(GetById), new { id = consulta.Id }, consulta);
         }
         catch (KeyNotFoundException ex)
         {
@@ -82,8 +93,8 @@ public class ConsultasController(IConsultaService consultaService) : ControllerB
 
     [HttpPut("{id:long}")]
     [ProducesResponseType(typeof(ConsultaResponse), StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
     public IActionResult Update(long id, [FromBody] ConsultaRequest request)
     {
         if (!ModelState.IsValid)
@@ -102,7 +113,7 @@ public class ConsultasController(IConsultaService consultaService) : ControllerB
             return BadRequest(new { mensagem = ex.Message });
         }
     }
-    
+
     [HttpDelete("{id:long}")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]

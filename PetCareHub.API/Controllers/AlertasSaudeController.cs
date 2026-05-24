@@ -4,32 +4,29 @@ using PetCareHub.Application.Services.Interfaces;
 
 namespace PetCareHub.API.Controllers;
 
-/// <summary>
-/// Gerenciamento de alertas de saúde dos pets.
-/// </summary>
 [Route("api/[controller]")]
 [ApiController]
 [Produces("application/json")]
 public class AlertasSaudeController(IAlertaSaudeService alertaService) : ControllerBase
 {
-    /// <summary>
-    /// Lista todos os alertas.
-    /// </summary>
-    /// <response code="200">Lista retornada com sucesso.</response>
+
     [HttpGet]
     [ProducesResponseType(typeof(IReadOnlyList<AlertaSaudeResponse>), StatusCodes.Status200OK)]
-    public IActionResult GetAll()
+    public IActionResult GetAll(
+        [FromQuery] long? petId,
+        [FromQuery] string? nivelAlerta,
+        [FromQuery] bool? resolvido)
     {
-        var alertas = alertaService.GetAll();
+        var temFiltro = petId.HasValue
+            || !string.IsNullOrWhiteSpace(nivelAlerta) || resolvido.HasValue;
+
+        var alertas = temFiltro
+            ? alertaService.GetFiltered(petId, nivelAlerta, resolvido)
+            : alertaService.GetAll();
+
         return Ok(alertas);
     }
 
-    /// <summary>
-    /// Obtém um alerta pelo ID.
-    /// </summary>
-    /// <param name="id">ID do alerta</param>
-    /// <response code="200">Alerta encontrado.</response>
-    /// <response code="404">Alerta não encontrado.</response>
     [HttpGet("{id:long}")]
     [ProducesResponseType(typeof(AlertaSaudeResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -75,7 +72,7 @@ public class AlertasSaudeController(IAlertaSaudeService alertaService) : Control
     }
 
     [HttpPost]
-    [ProducesResponseType(typeof(AlertaSaudeResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(AlertaSaudeResponse), StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public IActionResult Create([FromBody] AlertaSaudeRequest request)
     {
@@ -85,7 +82,7 @@ public class AlertasSaudeController(IAlertaSaudeService alertaService) : Control
         try
         {
             var alerta = alertaService.Create(request);
-            return Ok(alerta);
+            return CreatedAtAction(nameof(GetById), new { id = alerta.Id }, alerta);
         }
         catch (KeyNotFoundException ex)
         {
@@ -95,8 +92,8 @@ public class AlertasSaudeController(IAlertaSaudeService alertaService) : Control
 
     [HttpPut("{id:long}")]
     [ProducesResponseType(typeof(AlertaSaudeResponse), StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
     public IActionResult Update(long id, [FromBody] AlertaSaudeRequest request)
     {
         if (!ModelState.IsValid)
@@ -127,11 +124,11 @@ public class AlertasSaudeController(IAlertaSaudeService alertaService) : Control
 
         return NoContent();
     }
-    
+
     [HttpPut("{id:long}/resolver")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
     public IActionResult Resolver(long id)
     {
         try

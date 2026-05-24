@@ -1,6 +1,35 @@
 @PetCareHub.API_HostAddress = http://localhost:5062
 
-GET {{PetCareHub.API_HostAddress}}/weatherforecast/
+### Listar todas as clínicas
+GET {{PetCareHub.API_HostAddress}}/api/Clinicas
+Accept: application/json
+
+### Buscar clínica por ID
+GET {{PetCareHub.API_HostAddress}}/api/Clinicas/1
+Accept: application/json
+
+### Criar uma nova clínica
+POST {{PetCareHub.API_HostAddress}}/api/Clinicas
+Content-Type: application/json
+
+{
+  "nome": "Clinica Teste DotNet",
+  "cnpj": "99999999000199",
+  "email": "teste@petcare.com",
+  "telefone": "(11) 99999-9999",
+  "endereco": "Rua Teste, 123"
+}
+
+### Listar pets com filtros
+GET {{PetCareHub.API_HostAddress}}/api/Pets?clinicaId=1&especie=CAO&ativo=true
+Accept: application/json
+
+### Resumo do dashboard de uma clínica
+GET {{PetCareHub.API_HostAddress}}/api/Dashboard/clinicas/1
+Accept: application/json
+
+### Alertas pendentes filtrados
+GET {{PetCareHub.API_HostAddress}}/api/AlertasSaude?nivelAlerta=CRITICO&resolvido=false
 Accept: application/json
 
 ###

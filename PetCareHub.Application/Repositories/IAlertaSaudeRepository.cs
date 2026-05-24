@@ -12,5 +12,7 @@ public interface IAlertaSaudeRepository : IRepository<AlertaSaude>
 
     IEnumerable<AlertaSaude> GetUnresolvedByPet(long petId);
 
+    IEnumerable<AlertaSaude> GetFiltered(long? petId, string? nivelAlerta, bool? resolvido);
+
     void ResolveAlert(long alertaId);
 }

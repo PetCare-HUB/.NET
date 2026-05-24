@@ -25,7 +25,7 @@ public class LeituraSensorConfiguration : IEntityTypeConfiguration<LeituraSensor
 
         builder.Property(l => l.TipoLeitura)
             .HasColumnName("TIPO_LEITURA")
-            .HasMaxLength(50)
+            .HasMaxLength(40)
             .IsRequired();
 
         builder.Property(l => l.Valor)

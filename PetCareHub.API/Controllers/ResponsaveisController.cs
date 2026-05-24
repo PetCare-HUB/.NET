@@ -9,6 +9,7 @@ namespace PetCareHub.API.Controllers;
 [Produces("application/json")]
 public class ResponsaveisController(IResponsavelService responsavelService) : ControllerBase
 {
+
     [HttpGet]
     [ProducesResponseType(typeof(IReadOnlyList<ResponsavelResponse>), StatusCodes.Status200OK)]
     public IActionResult GetAll()
@@ -28,12 +29,20 @@ public class ResponsaveisController(IResponsavelService responsavelService) : Co
 
         return Ok(responsavel);
     }
-    
+
     [HttpGet("clinica/{clinicaId:long}")]
     [ProducesResponseType(typeof(IReadOnlyList<ResponsavelResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
     public IActionResult GetByClinica(long clinicaId)
     {
-        var responsaveis = responsavelService.GetByClinica(clinicaId);
-        return Ok(responsaveis);
+        try
+        {
+            var responsaveis = responsavelService.GetByClinica(clinicaId);
+            return Ok(responsaveis);
+        }
+        catch (KeyNotFoundException)
+        {
+            return NotFound();
+        }
     }
 }

@@ -13,13 +13,26 @@ public sealed class ScoreSaudeService(IScoreSaudeRepository scoreSaudeRepository
             .Select(ScoreSaudeResponse.FromDomain)
             .ToList();
     }
-    
+
+    public IReadOnlyList<ScoreSaudeResponse> GetFiltered(
+        long? petId,
+        long? clinicaId,
+        string? categoria,
+        int? scoreMin,
+        int? scoreMax)
+    {
+        return scoreSaudeRepository
+            .GetFiltered(petId, clinicaId, categoria, scoreMin, scoreMax)
+            .Select(ScoreSaudeResponse.FromDomain)
+            .ToList();
+    }
+
     public ScoreSaudeResponse? GetById(long id)
     {
         var score = scoreSaudeRepository.GetById(id);
         return score is null ? null : ScoreSaudeResponse.FromDomain(score);
     }
-    
+
     public IReadOnlyList<ScoreSaudeResponse> GetByPet(long petId)
     {
         return scoreSaudeRepository
@@ -27,7 +40,7 @@ public sealed class ScoreSaudeService(IScoreSaudeRepository scoreSaudeRepository
             .Select(ScoreSaudeResponse.FromDomain)
             .ToList();
     }
-    
+
     public IReadOnlyList<ScoreSaudeResponse> GetByClinica(long clinicaId)
     {
         return scoreSaudeRepository
@@ -35,7 +48,7 @@ public sealed class ScoreSaudeService(IScoreSaudeRepository scoreSaudeRepository
             .Select(ScoreSaudeResponse.FromDomain)
             .ToList();
     }
-    
+
     public ScoreSaudeResponse? GetLatestByPet(long petId)
     {
         var score = scoreSaudeRepository.GetLatestByPet(petId);

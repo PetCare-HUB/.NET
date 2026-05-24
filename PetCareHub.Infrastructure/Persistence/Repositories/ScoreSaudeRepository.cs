@@ -4,7 +4,7 @@ using PetCareHub.Domain.Entities;
 
 namespace PetCareHub.Infrastructure.Persistence.Repositories;
 
-public sealed class ScoreSaudeRepository(PetCareHubContext context) 
+public sealed class ScoreSaudeRepository(PetCareHubContext context)
     : Repository<ScoreSaude>(context), IScoreSaudeRepository
 {
     private readonly PetCareHubContext _context = context;
@@ -24,6 +24,36 @@ public sealed class ScoreSaudeRepository(PetCareHubContext context)
             .Include(s => s.Pet)
             .OrderByDescending(s => s.DataCalculo)
             .ToList();
+
+    public IEnumerable<ScoreSaude> GetFiltered(
+        long? petId,
+        long? clinicaId,
+        string? categoria,
+        int? scoreMin,
+        int? scoreMax)
+    {
+        var query = _context.ScoresSaude
+            .AsNoTracking()
+            .Include(s => s.Pet)
+            .AsQueryable();
+
+        if (petId.HasValue)
+            query = query.Where(s => s.PetId == petId.Value);
+
+        if (clinicaId.HasValue)
+            query = query.Where(s => s.Pet != null && s.Pet.ClinicaId == clinicaId.Value);
+
+        if (!string.IsNullOrWhiteSpace(categoria))
+            query = query.Where(s => s.Categoria.ToUpper() == categoria.ToUpper());
+
+        if (scoreMin.HasValue)
+            query = query.Where(s => s.ScoreTotal >= scoreMin.Value);
+
+        if (scoreMax.HasValue)
+            query = query.Where(s => s.ScoreTotal <= scoreMax.Value);
+
+        return query.OrderByDescending(s => s.DataCalculo).ToList();
+    }
 
     public ScoreSaude? GetLatestByPet(long petId) =>
         _context.ScoresSaude

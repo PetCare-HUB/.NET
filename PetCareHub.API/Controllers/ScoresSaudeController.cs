@@ -9,11 +9,24 @@ namespace PetCareHub.API.Controllers;
 [Produces("application/json")]
 public class ScoresSaudeController(IScoreSaudeService scoreSaudeService) : ControllerBase
 {
+
     [HttpGet]
     [ProducesResponseType(typeof(IReadOnlyList<ScoreSaudeResponse>), StatusCodes.Status200OK)]
-    public IActionResult GetAll()
+    public IActionResult GetAll(
+        [FromQuery] long? petId,
+        [FromQuery] long? clinicaId,
+        [FromQuery] string? categoria,
+        [FromQuery] int? scoreMin,
+        [FromQuery] int? scoreMax)
     {
-        var scores = scoreSaudeService.GetAll();
+        var temFiltro = petId.HasValue || clinicaId.HasValue
+            || !string.IsNullOrWhiteSpace(categoria)
+            || scoreMin.HasValue || scoreMax.HasValue;
+
+        var scores = temFiltro
+            ? scoreSaudeService.GetFiltered(petId, clinicaId, categoria, scoreMin, scoreMax)
+            : scoreSaudeService.GetAll();
+
         return Ok(scores);
     }
 

@@ -17,6 +17,7 @@ public class PetCareHubContext : DbContext
     public DbSet<Clinica> Clinicas { get; set; }
     public DbSet<ScoreSaude> ScoresSaude { get; set; }
     public DbSet<EventoPreventivo> EventosPreventivos { get; set; }
+    public DbSet<LeituraSensor> LeiturasSensor { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

@@ -7,6 +7,12 @@ public interface IConsultaRepository : IRepository<Consulta>
     IEnumerable<Consulta> GetByClinica(long clinicaId);
 
     IEnumerable<Consulta> GetByPet(long petId);
-    
+
     IEnumerable<Consulta> GetByPetAndClinica(long petId, long clinicaId);
+
+    IEnumerable<Consulta> GetFiltered(
+        long? clinicaId,
+        long? petId,
+        string? tipoConsulta,
+        bool? retornoRecomendado);
 }

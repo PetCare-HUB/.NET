@@ -25,12 +25,12 @@ public class PetConfiguration : IEntityTypeConfiguration<Pet>
 
         builder.Property(p => p.Nome)
             .HasColumnName("NOME")
-            .HasMaxLength(100)
+            .HasMaxLength(80)
             .IsRequired();
 
         builder.Property(p => p.Especie)
             .HasColumnName("ESPECIE")
-            .HasMaxLength(50)
+            .HasMaxLength(20)
             .IsRequired();
 
         builder.Property(p => p.Raca)
@@ -38,11 +38,12 @@ public class PetConfiguration : IEntityTypeConfiguration<Pet>
             .HasMaxLength(80);
 
         builder.Property(p => p.DataNascimento)
-            .HasColumnName("DATA_NASCIMENTO");
+            .HasColumnName("DATA_NASCIMENTO")
+            .HasColumnType("DATE");
 
         builder.Property(p => p.PesoKg)
             .HasColumnName("PESO_KG")
-            .HasPrecision(10, 2)
+            .HasPrecision(5, 2)
             .IsRequired();
 
         builder.Property(p => p.Sexo)
@@ -51,10 +52,11 @@ public class PetConfiguration : IEntityTypeConfiguration<Pet>
 
         builder.Property(p => p.CondicoesCronicas)
             .HasColumnName("CONDICOES_CRONICAS")
-            .HasMaxLength(500);
+            .HasMaxLength(300);
 
         builder.Property(p => p.DataCadastro)
             .HasColumnName("DATA_CADASTRO")
+            .HasColumnType("DATE")
             .IsRequired();
 
         builder.Property(p => p.Ativo)
@@ -69,6 +71,11 @@ public class PetConfiguration : IEntityTypeConfiguration<Pet>
         builder.HasOne(p => p.Clinica)
             .WithMany(c => c.Pets)
             .HasForeignKey(p => p.ClinicaId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        builder.HasOne(p => p.Responsavel)
+            .WithMany(r => r.Pets)
+            .HasForeignKey(p => p.ResponsavelId)
             .OnDelete(DeleteBehavior.Restrict);
 
         builder.HasIndex(p => p.ClinicaId);

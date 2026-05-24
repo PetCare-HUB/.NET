@@ -7,15 +7,18 @@ public record AlertaSaudeRequest(
     long PetId,
 
     [property: Required(ErrorMessage = "O tipo de alerta é obrigatório")]
-    [property: StringLength(100, MinimumLength = 3)]
+    [property: StringLength(40, MinimumLength = 3, ErrorMessage = "Tipo entre 3 e 40 caracteres")]
     string TipoAlerta,
 
     [property: Required(ErrorMessage = "O nível de alerta é obrigatório")]
-    [property: StringLength(50)]
-    string NivelAlerta, // CRITICO, AVISO, INFO
+    [property: StringLength(20, ErrorMessage = "Nível com até 20 caracteres")]
+    [property: RegularExpression("^(BAIXO|MEDIO|ALTO|CRITICO)$",
+        ErrorMessage = "Nível deve ser BAIXO, MEDIO, ALTO ou CRITICO")]
+    string NivelAlerta,
 
-    [property: StringLength(500)]
-    string? Mensagem,
+    [property: Required(ErrorMessage = "A mensagem é obrigatória")]
+    [property: StringLength(300, MinimumLength = 1)]
+    string Mensagem,
 
     [property: Range(0, double.MaxValue)]
     decimal? ValorDetectado,

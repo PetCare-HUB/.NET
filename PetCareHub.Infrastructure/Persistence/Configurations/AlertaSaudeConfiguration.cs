@@ -24,7 +24,7 @@ public class AlertaSaudeConfiguration : IEntityTypeConfiguration<AlertaSaude>
 
         builder.Property(a => a.TipoAlerta)
             .HasColumnName("TIPO_ALERTA")
-            .HasMaxLength(50)
+            .HasMaxLength(40)
             .IsRequired();
 
         builder.Property(a => a.NivelAlerta)
@@ -34,7 +34,7 @@ public class AlertaSaudeConfiguration : IEntityTypeConfiguration<AlertaSaude>
 
         builder.Property(a => a.Mensagem)
             .HasColumnName("MENSAGEM")
-            .HasMaxLength(500)
+            .HasMaxLength(300)
             .IsRequired();
 
         builder.Property(a => a.ValorDetectado)

@@ -6,6 +6,13 @@ public interface IScoreSaudeService
 {
     IReadOnlyList<ScoreSaudeResponse> GetAll();
 
+    IReadOnlyList<ScoreSaudeResponse> GetFiltered(
+        long? petId,
+        long? clinicaId,
+        string? categoria,
+        int? scoreMin,
+        int? scoreMax);
+
     ScoreSaudeResponse? GetById(long id);
 
     IReadOnlyList<ScoreSaudeResponse> GetByPet(long petId);

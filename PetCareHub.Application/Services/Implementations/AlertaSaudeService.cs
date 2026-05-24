@@ -17,13 +17,21 @@ public sealed class AlertaSaudeService(
             .Select(AlertaSaudeResponse.FromDomain)
             .ToList();
     }
-    
+
+    public IReadOnlyList<AlertaSaudeResponse> GetFiltered(long? petId, string? nivelAlerta, bool? resolvido)
+    {
+        return alertaRepository
+            .GetFiltered(petId, nivelAlerta, resolvido)
+            .Select(AlertaSaudeResponse.FromDomain)
+            .ToList();
+    }
+
     public AlertaSaudeResponse? GetById(long id)
     {
         var alerta = alertaRepository.GetById(id);
         return alerta is null ? null : AlertaSaudeResponse.FromDomain(alerta);
     }
-    
+
     public IReadOnlyList<AlertaSaudeResponse> GetByPet(long petId)
     {
         if (!petRepository.Exists(petId))
@@ -34,7 +42,7 @@ public sealed class AlertaSaudeService(
             .Select(AlertaSaudeResponse.FromDomain)
             .ToList();
     }
-    
+
     public IReadOnlyList<AlertaSaudeResponse> GetByClinica(long clinicaId)
     {
         if (!clinicaRepository.Exists(clinicaId))
@@ -45,7 +53,7 @@ public sealed class AlertaSaudeService(
             .Select(AlertaSaudeResponse.FromDomain)
             .ToList();
     }
-    
+
     public AlertaSaudeResponse Create(AlertaSaudeRequest request)
     {
         if (!petRepository.Exists(request.PetId))
@@ -68,7 +76,7 @@ public sealed class AlertaSaudeService(
 
         return AlertaSaudeResponse.FromDomain(alerta);
     }
-    
+
     public AlertaSaudeResponse? Update(long id, AlertaSaudeRequest request)
     {
         var alerta = alertaRepository.GetById(id);

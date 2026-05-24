@@ -25,11 +25,12 @@ public class ConsultaConfiguration : IEntityTypeConfiguration<Consulta>
 
         builder.Property(c => c.DataConsulta)
             .HasColumnName("DATA_CONSULTA")
+            .HasColumnType("DATE")
             .IsRequired();
 
         builder.Property(c => c.TipoConsulta)
             .HasColumnName("TIPO_CONSULTA")
-            .HasMaxLength(50)
+            .HasMaxLength(30)
             .IsRequired();
 
         builder.Property(c => c.Descricao)
@@ -54,7 +55,8 @@ public class ConsultaConfiguration : IEntityTypeConfiguration<Consulta>
             .IsRequired();
 
         builder.Property(c => c.DataRetorno)
-            .HasColumnName("DATA_RETORNO");
+            .HasColumnName("DATA_RETORNO")
+            .HasColumnType("DATE");
 
         builder.HasOne(c => c.Pet)
             .WithMany(p => p.Consultas)

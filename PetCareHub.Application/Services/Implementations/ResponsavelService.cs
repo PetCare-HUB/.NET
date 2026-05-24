@@ -4,7 +4,9 @@ using PetCareHub.Application.Services.Interfaces;
 
 namespace PetCareHub.Application.Services.Implementations;
 
-public sealed class ResponsavelService(IResponsavelRepository responsavelRepository) : IResponsavelService
+public sealed class ResponsavelService(
+    IResponsavelRepository responsavelRepository,
+    IClinicaRepository clinicaRepository) : IResponsavelService
 {
     public IReadOnlyList<ResponsavelResponse> GetAll()
     {
@@ -19,9 +21,12 @@ public sealed class ResponsavelService(IResponsavelRepository responsavelReposit
         var responsavel = responsavelRepository.GetById(id);
         return responsavel is null ? null : ResponsavelResponse.FromDomain(responsavel);
     }
-    
+
     public IReadOnlyList<ResponsavelResponse> GetByClinica(long clinicaId)
     {
+        if (!clinicaRepository.Exists(clinicaId))
+            throw new KeyNotFoundException($"Clínica com id {clinicaId} não encontrada.");
+
         return responsavelRepository
             .GetByClinica(clinicaId)
             .Select(ResponsavelResponse.FromDomain)
