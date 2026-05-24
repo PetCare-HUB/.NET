@@ -149,8 +149,6 @@ Com o seguinte conteúdo:
 }
 ```
 
-O arquivo `appsettings.Development.json` está no `.gitignore` e não deve ser commitado.
-
 ---
 
 ## Como Executar o Projeto
@@ -456,23 +454,6 @@ Para testar pelo Swagger, basta usar o botão **"Try it out"** em cada endpoint.
 O PetCare Hub se conecta ao desafio CLYVO VET ao apoiar a continuidade do cuidado do pet por meio de dados clínicos, preventivos e de sensores.
 
 A API .NET atua na camada de visualização B2B, permitindo que clínicas acompanhem indicadores e tomem ações proativas com base nos dados registrados.
-
----
-
-## Status do Projeto
-
-```txt
-API .NET: funcional
-Conexão Oracle: funcionando
-Swagger: funcionando
-EF Core: configurado
-Migrations: criadas
-CRUD de clínicas: funcional
-Consulta de pets: funcional (somente leitura, conforme arquitetura)
-CRUD de consultas: funcional
-CRUD de alertas: funcional
-Dashboard clínico: funcional
-```
 
 ---
 
