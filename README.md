@@ -31,13 +31,24 @@ A API .NET é responsável por servir os dados do **dashboard da clínica veteri
 A aplicação permite:
 
 - Gerenciar clínicas via CRUD completo;
-- Gerenciar pets via CRUD completo (com filtros por clínica, espécie e situação);
+- Consultar pets vinculados à clínica (somente leitura);
 - Gerenciar consultas via CRUD completo (com filtros por clínica, pet, tipo e retorno);
 - Gerenciar alertas de saúde via CRUD completo (com filtros por pet, nível e situação);
 - Resolver alertas;
 - Consultar responsáveis pelos pets;
 - Consultar scores de saúde com filtros por categoria e faixa de score;
 - Exibir métricas consolidadas no dashboard.
+
+---
+
+## Decisões de Arquitetura
+
+Esta API é o **dashboard B2B** da clínica veterinária parceira. O ciclo de vida dos dados é dividido entre as APIs da plataforma PetCare Hub:
+
+- **Pets, Responsáveis e Scores de Saúde** são expostos **apenas para leitura** nesta API. O cadastro, atualização e remoção desses recursos pertence à API Java (consumida pelo tutor através do app mobile), que é a fonte de verdade dos dados do animal e do seu responsável. Os Scores de Saúde são calculados pela API Java a partir das leituras IoT e gravados no banco Oracle compartilhado.
+- **Clínicas, Consultas e Alertas de Saúde** possuem **CRUD completo** nesta API, pois representam operações realizadas pela equipe da clínica no seu dia a dia (cadastrar uma clínica parceira, registrar uma consulta, abrir ou resolver um alerta).
+
+Essa separação garante que cada API tenha responsabilidade clara sobre o seu domínio e evita duplicação de regras de negócio entre Java e .NET.
 
 ---
 
@@ -217,7 +228,7 @@ dotnet ef database update --project PetCareHub.Infrastructure --startup-project 
 
 Todos os endpoints seguem o padrão REST e estão documentados no Swagger.
 
-### 🏥 Clínicas
+### 🏥 Clínicas (CRUD completo)
 
 | Método | Rota | Descrição |
 |---|---|---|
@@ -244,46 +255,21 @@ Todos os endpoints seguem o padrão REST e estão documentados no Swagger.
 
 ---
 
-### 🐶 Pets
+### 🐶 Pets (somente leitura)
+
+> Pets são gerenciados pela API Java (responsabilidade do tutor através do app mobile).
+> A API .NET expõe apenas leitura, pois é o dashboard B2B da clínica — ela apenas
+> consulta os pets dos clientes da clínica.
 
 | Método | Rota | Descrição |
 |---|---|---|
-| `GET`    | `/api/Pets`                          | Lista pets (filtros opcionais) |
-| `GET`    | `/api/Pets/{id}`                     | Busca pet pelo ID |
-| `GET`    | `/api/Pets/clinica/{clinicaId}`      | Lista pets de uma clínica |
-| `POST`   | `/api/Pets`                          | Cadastra um novo pet |
-| `PUT`    | `/api/Pets/{id}`                     | Atualiza um pet |
-| `DELETE` | `/api/Pets/{id}`                     | Remove um pet |
-
-**Filtros opcionais no GET:**
-
-```
-GET /api/Pets?clinicaId=1
-GET /api/Pets?especie=CAO
-GET /api/Pets?ativo=true
-GET /api/Pets?clinicaId=1&especie=GATO&ativo=true
-```
-
-**Exemplo POST:**
-
-```json
-{
-  "responsavelId": 1,
-  "clinicaId": 1,
-  "nome": "Rex",
-  "especie": "CAO",
-  "raca": "Labrador",
-  "dataNascimento": "2022-05-10",
-  "pesoKg": 18.5,
-  "sexo": "M",
-  "condicoesCronicas": null,
-  "ativo": true
-}
-```
+| `GET` | `/api/Pets`                          | Lista todos os pets |
+| `GET` | `/api/Pets/{id}`                     | Busca pet pelo ID |
+| `GET` | `/api/Pets/clinica/{clinicaId}`      | Lista pets vinculados a uma clínica |
 
 ---
 
-### 🩺 Consultas
+### 🩺 Consultas (CRUD completo)
 
 | Método | Rota | Descrição |
 |---|---|---|
@@ -304,9 +290,27 @@ GET /api/Consultas?tipoConsulta=CHECKUP
 GET /api/Consultas?retornoRecomendado=true
 ```
 
+**Exemplo POST:**
+
+```json
+{
+  "petId": 1,
+  "clinicaId": 1,
+  "dataConsulta": "2026-05-24T10:00:00",
+  "tipoConsulta": "CHECKUP",
+  "descricao": "Consulta de rotina",
+  "diagnostico": "Saudável",
+  "valor": 150.00,
+  "retornoRecomendado": true,
+  "dataRetorno": "2026-08-24T10:00:00"
+}
+```
+
+> **Importante:** `tipoConsulta` deve ser um dos valores: `CHECKUP`, `VACINA`, `EMERGENCIA`, `RETORNO` ou `EXAME`.
+
 ---
 
-### 🚨 Alertas de Saúde
+### 🚨 Alertas de Saúde (CRUD completo)
 
 | Método | Rota | Descrição |
 |---|---|---|
@@ -327,9 +331,29 @@ GET /api/AlertasSaude?nivelAlerta=CRITICO
 GET /api/AlertasSaude?resolvido=false
 ```
 
+**Exemplo POST:**
+
+```json
+{
+  "petId": 1,
+  "tipoAlerta": "TEMPERATURA_AMBIENTE",
+  "nivelAlerta": "ALTO",
+  "mensagem": "Temperatura ambiente acima do recomendado para a raça",
+  "valorDetectado": 32.5,
+  "limiteReferencia": 28.0,
+  "leituraId": null
+}
+```
+
+> **Importante:** `nivelAlerta` deve ser um dos valores: `BAIXO`, `MEDIO`, `ALTO` ou `CRITICO`.
+
 ---
 
-### 📊 Scores de Saúde
+### 📊 Scores de Saúde (somente leitura)
+
+> Os scores são calculados pela API Java a partir das leituras IoT (coleira,
+> comedouro e sensores de ambiente). A API .NET apenas consulta os scores já
+> persistidos no banco Oracle.
 
 | Método | Rota | Descrição |
 |---|---|---|
@@ -350,7 +374,10 @@ GET /api/ScoresSaude?scoreMin=0&scoreMax=50
 
 ---
 
-### 👤 Responsáveis
+### 👤 Responsáveis (somente leitura)
+
+> Responsáveis (tutores) são cadastrados pela API Java no momento em que o tutor
+> se registra no app mobile. A clínica apenas consulta essa informação.
 
 | Método | Rota | Descrição |
 |---|---|---|
@@ -420,6 +447,8 @@ A documentação inclui:
 - Códigos de retorno possíveis;
 - Schemas dos DTOs.
 
+Para testar pelo Swagger, basta usar o botão **"Try it out"** em cada endpoint. Os exemplos de JSON para `POST` e `PUT` estão documentados acima neste README e podem ser copiados e colados diretamente no campo "Request body".
+
 ---
 
 ## Integração com o Challenge
@@ -439,7 +468,7 @@ Swagger: funcionando
 EF Core: configurado
 Migrations: criadas
 CRUD de clínicas: funcional
-CRUD de pets: funcional
+Consulta de pets: funcional (somente leitura, conforme arquitetura)
 CRUD de consultas: funcional
 CRUD de alertas: funcional
 Dashboard clínico: funcional
