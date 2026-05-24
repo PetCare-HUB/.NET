@@ -13,7 +13,9 @@ public class ConsultaConfiguration : IEntityTypeConfiguration<Consulta>
         builder.HasKey(c => c.Id);
 
         builder.Property(c => c.Id)
-            .HasColumnName("ID_CONSULTA");
+            .HasColumnName("ID_CONSULTA")
+            .HasDefaultValueSql("SEQ_CONSULTA.NEXTVAL")
+            .ValueGeneratedOnAdd();
 
         builder.Property(c => c.PetId)
             .HasColumnName("ID_PET")

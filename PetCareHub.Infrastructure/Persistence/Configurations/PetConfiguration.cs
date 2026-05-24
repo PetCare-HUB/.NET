@@ -13,7 +13,9 @@ public class PetConfiguration : IEntityTypeConfiguration<Pet>
         builder.HasKey(p => p.Id);
 
         builder.Property(p => p.Id)
-            .HasColumnName("ID_PET");
+            .HasColumnName("ID_PET")
+            .HasDefaultValueSql("SEQ_PET.NEXTVAL")
+            .ValueGeneratedOnAdd();
 
         builder.Property(p => p.ResponsavelId)
             .HasColumnName("ID_RESPONSAVEL")

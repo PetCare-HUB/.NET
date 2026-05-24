@@ -7,8 +7,6 @@ namespace PetCareHub.Infrastructure.Persistence.Repositories;
 public sealed class PetRepository(PetCareHubContext context)
     : Repository<Pet>(context), IPetRepository
 {
-    private readonly PetCareHubContext _context = context;
-
     public IEnumerable<Pet> GetByClinica(long clinicaId) =>
         _context.Pets
             .AsNoTracking()
@@ -45,6 +43,7 @@ public sealed class PetRepository(PetCareHubContext context)
             .Include(p => p.Responsavel)
             .FirstOrDefault(p => p.Id == id);
 
+    // FIX bug Oracle EF Core 9.23 — não usar .Any()
     public bool ExistsByNome(string nome) =>
-        _context.Pets.Any(p => p.Nome.ToLower() == nome.ToLower());
+        _context.Pets.Count(p => p.Nome.ToLower() == nome.ToLower()) > 0;
 }

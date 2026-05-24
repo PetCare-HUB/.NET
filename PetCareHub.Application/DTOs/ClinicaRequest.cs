@@ -3,21 +3,23 @@
 namespace PetCareHub.Application.DTOs;
 
 public record ClinicaRequest(
-    [property: Required(ErrorMessage = "O nome da clínica é obrigatório")]
-    [property: StringLength(200, MinimumLength = 3, ErrorMessage = "Nome entre 3 e 200 caracteres")]
+    [Required(ErrorMessage = "O nome da clínica é obrigatório")]
+    [StringLength(120, MinimumLength = 3, ErrorMessage = "Nome entre 3 e 120 caracteres")]
     string Nome,
 
-    [property: Required(ErrorMessage = "O CNPJ é obrigatório")]
-    [property: StringLength(14, MinimumLength = 14, ErrorMessage = "CNPJ deve ter 14 caracteres")]
+    [Required(ErrorMessage = "O CNPJ é obrigatório")]
+    [StringLength(14, MinimumLength = 14, ErrorMessage = "CNPJ deve ter 14 caracteres")]
     string Cnpj,
 
-    [property: EmailAddress(ErrorMessage = "Email inválido")]
+    [EmailAddress(ErrorMessage = "Email inválido")]
+    [StringLength(120)]
     string? Email,
 
-    [property: Phone(ErrorMessage = "Telefone inválido")]
+    [Phone(ErrorMessage = "Telefone inválido")]
+    [StringLength(20)]
     string? Telefone,
 
-    [property: StringLength(500)]
+    [StringLength(200)]
     string? Endereco,
 
     bool Ativo = true

@@ -13,7 +13,9 @@ public class LeituraSensorConfiguration : IEntityTypeConfiguration<LeituraSensor
         builder.HasKey(l => l.Id);
 
         builder.Property(l => l.Id)
-            .HasColumnName("ID_LEITURA");
+            .HasColumnName("ID_LEITURA")
+            .HasDefaultValueSql("SEQ_LEITURA_SENSOR.NEXTVAL")
+            .ValueGeneratedOnAdd();
 
         builder.Property(l => l.PetId)
             .HasColumnName("ID_PET")

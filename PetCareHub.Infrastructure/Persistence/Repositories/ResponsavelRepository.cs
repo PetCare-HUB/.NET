@@ -7,7 +7,6 @@ namespace PetCareHub.Infrastructure.Persistence.Repositories;
 public sealed class ResponsavelRepository(PetCareHubContext context) 
     : Repository<Responsavel>(context), IResponsavelRepository
 {
-    private readonly PetCareHubContext _context = context;
 
     public IEnumerable<Responsavel> GetByClinica(long clinicaId) =>
         _context.Responsaveis

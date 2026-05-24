@@ -13,7 +13,9 @@ public class ClinicaConfiguration : IEntityTypeConfiguration<Clinica>
         builder.HasKey(c => c.Id);
 
         builder.Property(c => c.Id)
-            .HasColumnName("ID_CLINICA");
+            .HasColumnName("ID_CLINICA")
+            .HasDefaultValueSql("SEQ_CLINICA.NEXTVAL")
+            .ValueGeneratedOnAdd();
 
         builder.Property(c => c.Nome)
             .HasColumnName("NOME")

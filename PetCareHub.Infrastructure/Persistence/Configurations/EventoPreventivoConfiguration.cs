@@ -13,7 +13,9 @@ public class EventoPreventivoConfiguration : IEntityTypeConfiguration<EventoPrev
         builder.HasKey(e => e.Id);
 
         builder.Property(e => e.Id)
-            .HasColumnName("ID_EVENTO");
+            .HasColumnName("ID_EVENTO")
+            .HasDefaultValueSql("SEQ_EVENTO_PREVENTIVO.NEXTVAL")
+            .ValueGeneratedOnAdd();
 
         builder.Property(e => e.PetId)
             .HasColumnName("ID_PET")

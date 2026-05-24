@@ -7,7 +7,6 @@ namespace PetCareHub.Infrastructure.Persistence.Repositories;
 public sealed class AlertaSaudeRepository(PetCareHubContext context)
     : Repository<AlertaSaude>(context), IAlertaSaudeRepository
 {
-    private readonly PetCareHubContext _context = context;
 
     public IEnumerable<AlertaSaude> GetByPet(long petId) =>
         _context.AlertasSaude

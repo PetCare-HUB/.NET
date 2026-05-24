@@ -7,7 +7,6 @@ namespace PetCareHub.Infrastructure.Persistence.Repositories;
 public sealed class ConsultaRepository(PetCareHubContext context)
     : Repository<Consulta>(context), IConsultaRepository
 {
-    private readonly PetCareHubContext _context = context;
 
     public IEnumerable<Consulta> GetByClinica(long clinicaId) =>
         _context.Consultas

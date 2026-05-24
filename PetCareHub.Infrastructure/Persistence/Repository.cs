@@ -3,41 +3,41 @@ using PetCareHub.Application.Repositories;
 
 namespace PetCareHub.Infrastructure.Persistence;
 
-public class Repository<TEntity>(PetCareHubContext context) 
-    : IRepository<TEntity> where TEntity : class
+public abstract class Repository<T>(PetCareHubContext context) : IRepository<T> where T : class
 {
-    private readonly DbSet<TEntity> _dbSet = context.Set<TEntity>();
-    protected readonly PetCareHubContext Context = context;
+    protected readonly PetCareHubContext _context = context;
 
-    public IEnumerable<TEntity> GetAll() => 
-        _dbSet.AsNoTracking().ToList();
+    public virtual IEnumerable<T> GetAll() =>
+        _context.Set<T>().AsNoTracking().ToList();
 
-    public TEntity? GetById(long id) => 
-        _dbSet.Find(id);
+    public virtual T? GetById(long id) =>
+        _context.Set<T>().Find(id);
 
-    public void Add(TEntity entity)
+    public virtual void Add(T entity)
     {
-        _dbSet.Add(entity);
-        Context.SaveChanges();
+        _context.Set<T>().Add(entity);
+        _context.SaveChanges();
     }
 
-    public void Update(TEntity entity)
+    public virtual void Update(T entity)
     {
-        _dbSet.Update(entity);
-        Context.SaveChanges();
+        _context.Set<T>().Update(entity);
+        _context.SaveChanges();
     }
 
-    public bool Delete(long id)
+    public virtual bool Delete(long id)
     {
-        var entity = GetById(id);
+        var entity = _context.Set<T>().Find(id);
         if (entity is null)
             return false;
 
-        _dbSet.Remove(entity);
-        Context.SaveChanges();
+        _context.Set<T>().Remove(entity);
+        _context.SaveChanges();
         return true;
     }
 
-    public bool Exists(long id) => 
-        _dbSet.Find(id) is not null;
+    // FIX bug Oracle EF Core 9.23 — não usar .Any(), usar Count() > 0
+    public virtual bool Exists(long id) =>
+        _context.Set<T>()
+            .Count(e => EF.Property<long>(e, "Id") == id) > 0;
 }

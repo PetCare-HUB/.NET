@@ -13,7 +13,9 @@ public class ResponsavelConfiguration : IEntityTypeConfiguration<Responsavel>
         builder.HasKey(r => r.Id);
 
         builder.Property(r => r.Id)
-            .HasColumnName("ID_RESPONSAVEL");
+            .HasColumnName("ID_RESPONSAVEL")
+            .HasDefaultValueSql("SEQ_RESPONSAVEL.NEXTVAL")
+            .ValueGeneratedOnAdd();
 
         builder.Property(r => r.Nome)
             .HasColumnName("NOME")

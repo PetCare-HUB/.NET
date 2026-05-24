@@ -21,6 +21,16 @@ public class PetCareHubContext : DbContext
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
+        // Sequences existentes no banco Oracle
+        modelBuilder.HasSequence<long>("SEQ_RESPONSAVEL");
+        modelBuilder.HasSequence<long>("SEQ_CLINICA");
+        modelBuilder.HasSequence<long>("SEQ_PET");
+        modelBuilder.HasSequence<long>("SEQ_CONSULTA");
+        modelBuilder.HasSequence<long>("SEQ_EVENTO_PREVENTIVO");
+        modelBuilder.HasSequence<long>("SEQ_LEITURA_SENSOR");
+        modelBuilder.HasSequence<long>("SEQ_ALERTA_SAUDE");
+        modelBuilder.HasSequence<long>("SEQ_SCORE_SAUDE");
+
         modelBuilder.ApplyConfigurationsFromAssembly(typeof(PetCareHubContext).Assembly);
 
         base.OnModelCreating(modelBuilder);

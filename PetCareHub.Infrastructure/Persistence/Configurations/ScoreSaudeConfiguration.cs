@@ -13,7 +13,9 @@ public class ScoreSaudeConfiguration : IEntityTypeConfiguration<ScoreSaude>
         builder.HasKey(s => s.Id);
 
         builder.Property(s => s.Id)
-            .HasColumnName("ID_SCORE");
+            .HasColumnName("ID_SCORE")
+            .HasDefaultValueSql("SEQ_SCORE_SAUDE.NEXTVAL")
+            .ValueGeneratedOnAdd();
 
         builder.Property(s => s.PetId)
             .HasColumnName("ID_PET")

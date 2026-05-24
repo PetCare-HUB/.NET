@@ -13,7 +13,9 @@ public class AlertaSaudeConfiguration : IEntityTypeConfiguration<AlertaSaude>
         builder.HasKey(a => a.Id);
 
         builder.Property(a => a.Id)
-            .HasColumnName("ID_ALERTA");
+            .HasColumnName("ID_ALERTA")
+            .HasDefaultValueSql("SEQ_ALERTA_SAUDE.NEXTVAL")
+            .ValueGeneratedOnAdd();
 
         builder.Property(a => a.PetId)
             .HasColumnName("ID_PET")
