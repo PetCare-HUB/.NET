@@ -1,4 +1,5 @@
-﻿using PetCareHub.Application.DTOs;
+﻿using Microsoft.Extensions.Logging;
+using PetCareHub.Application.DTOs;
 using PetCareHub.Application.Repositories;
 using PetCareHub.Application.Services.Interfaces;
 using PetCareHub.Domain.Entities;
@@ -8,7 +9,8 @@ namespace PetCareHub.Application.Services.Implementations;
 public sealed class ConsultaService(
     IConsultaRepository consultaRepository,
     IPetRepository petRepository,
-    IClinicaRepository clinicaRepository) : IConsultaService
+    IClinicaRepository clinicaRepository,
+    ILogger<ConsultaService> logger) : IConsultaService
 {
     public IReadOnlyList<ConsultaResponse> GetAll()
     {
@@ -61,10 +63,16 @@ public sealed class ConsultaService(
     public ConsultaResponse Create(ConsultaRequest request)
     {
         if (!petRepository.Exists(request.PetId))
+        {
+            logger.LogWarning("Tentativa de criar consulta para pet {PetId} inexistente", request.PetId);
             throw new KeyNotFoundException($"Pet com id {request.PetId} não encontrado.");
+        }
 
         if (!clinicaRepository.Exists(request.ClinicaId))
+        {
+            logger.LogWarning("Tentativa de criar consulta para clínica {ClinicaId} inexistente", request.ClinicaId);
             throw new KeyNotFoundException($"Clínica com id {request.ClinicaId} não encontrada.");
+        }
 
         var consulta = new Consulta
         {
@@ -80,6 +88,8 @@ public sealed class ConsultaService(
         };
 
         consultaRepository.Add(consulta);
+
+        logger.LogInformation("Consulta {ConsultaId} criada para o pet {PetId}", consulta.Id, consulta.PetId);
 
         return ConsultaResponse.FromDomain(consulta);
     }

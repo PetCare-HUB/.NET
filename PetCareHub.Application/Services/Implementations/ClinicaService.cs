@@ -1,4 +1,5 @@
-﻿using PetCareHub.Application.DTOs;
+﻿using Microsoft.Extensions.Logging;
+using PetCareHub.Application.DTOs;
 using PetCareHub.Application.Repositories;
 using PetCareHub.Application.Services.Interfaces;
 using PetCareHub.Domain.Entities;
@@ -6,7 +7,8 @@ using PetCareHub.Domain.Entities;
 namespace PetCareHub.Application.Services.Implementations;
 
 public sealed class ClinicaService(
-    IClinicaRepository clinicaRepository) : IClinicaService
+    IClinicaRepository clinicaRepository,
+    ILogger<ClinicaService> logger) : IClinicaService
 {
     public IReadOnlyList<ClinicaResponse> GetAll()
     {
@@ -25,7 +27,10 @@ public sealed class ClinicaService(
     public ClinicaResponse Create(ClinicaRequest request)
     {
         if (clinicaRepository.ExistsByCnpj(request.Cnpj))
+        {
+            logger.LogWarning("Tentativa de criar clínica com CNPJ {Cnpj} já cadastrado", request.Cnpj);
             throw new InvalidOperationException($"Já existe uma clínica com CNPJ {request.Cnpj}.");
+        }
 
         var clinica = new Clinica
         {
@@ -39,6 +44,8 @@ public sealed class ClinicaService(
 
         clinicaRepository.Add(clinica);
 
+        logger.LogInformation("Clínica {ClinicaId} ({Nome}) criada com sucesso", clinica.Id, clinica.Nome);
+
         return ClinicaResponse.FromDomain(clinica);
     }
     
@@ -49,7 +56,10 @@ public sealed class ClinicaService(
             return null;
 
         if (request.Cnpj != clinica.Cnpj && clinicaRepository.ExistsByCnpj(request.Cnpj))
+        {
+            logger.LogWarning("Tentativa de atualizar clínica {ClinicaId} para CNPJ {Cnpj} já cadastrado", id, request.Cnpj);
             throw new InvalidOperationException($"Já existe uma clínica com CNPJ {request.Cnpj}.");
+        }
 
         clinica.Nome = request.Nome;
         clinica.Cnpj = request.Cnpj;
@@ -59,6 +69,8 @@ public sealed class ClinicaService(
         clinica.Ativo = request.Ativo;
 
         clinicaRepository.Update(clinica);
+
+        logger.LogInformation("Clínica {ClinicaId} atualizada com sucesso", clinica.Id);
 
         return ClinicaResponse.FromDomain(clinica);
     }
@@ -70,8 +82,16 @@ public sealed class ClinicaService(
             return false;
 
         if (clinicaRepository.HasPets(id))
+        {
+            logger.LogWarning("Tentativa de deletar clínica {ClinicaId} que possui pets vinculados", id);
             throw new InvalidOperationException("Não é possível deletar uma clínica que possui pets vinculados.");
+        }
 
-        return clinicaRepository.Delete(id);
+        var deletado = clinicaRepository.Delete(id);
+
+        if (deletado)
+            logger.LogInformation("Clínica {ClinicaId} deletada com sucesso", id);
+
+        return deletado;
     }
 }
