@@ -26,7 +26,7 @@ public class EventoPreventivoConfiguration : IEntityTypeConfiguration<EventoPrev
 
         builder.Property(e => e.TipoEvento)
             .HasColumnName("TIPO_EVENTO")
-            .HasMaxLength(50)
+            .HasMaxLength(30)
             .IsRequired();
 
         builder.Property(e => e.Descricao)
@@ -36,10 +36,12 @@ public class EventoPreventivoConfiguration : IEntityTypeConfiguration<EventoPrev
 
         builder.Property(e => e.DataPrevista)
             .HasColumnName("DATA_PREVISTA")
+            .HasColumnType("DATE")
             .IsRequired();
 
         builder.Property(e => e.DataRealizacao)
-            .HasColumnName("DATA_REALIZACAO");
+            .HasColumnName("DATA_REALIZACAO")
+            .HasColumnType("DATE");
 
         builder.Property(e => e.Status)
             .HasColumnName("STATUS")
@@ -50,6 +52,11 @@ public class EventoPreventivoConfiguration : IEntityTypeConfiguration<EventoPrev
             .WithMany(p => p.EventosPreventivos)
             .HasForeignKey(e => e.PetId)
             .OnDelete(DeleteBehavior.Restrict);
+
+        builder.HasOne(e => e.Protocolo)
+            .WithMany(pr => pr.EventosPreventivos)
+            .HasForeignKey(e => e.ProtocoloId)
+            .OnDelete(DeleteBehavior.SetNull);
 
         builder.HasIndex(e => e.PetId);
         builder.HasIndex(e => e.Status);

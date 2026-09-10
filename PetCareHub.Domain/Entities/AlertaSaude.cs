@@ -6,8 +6,6 @@ public class AlertaSaude
 
     public long PetId { get; set; }
 
-    public long? LeituraId { get; set; }
-
     public string TipoAlerta { get; set; } = string.Empty;
 
     public string NivelAlerta { get; set; } = string.Empty;
@@ -25,6 +23,4 @@ public class AlertaSaude
     public DateTime? DataResolucao { get; set; }
 
     public Pet? Pet { get; set; }
-
-    public LeituraSensor? LeituraSensor { get; set; }
 }

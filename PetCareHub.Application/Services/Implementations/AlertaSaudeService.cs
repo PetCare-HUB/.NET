@@ -1,4 +1,5 @@
-﻿using PetCareHub.Application.DTOs;
+﻿using Microsoft.Extensions.Logging;
+using PetCareHub.Application.DTOs;
 using PetCareHub.Application.Repositories;
 using PetCareHub.Application.Services.Interfaces;
 using PetCareHub.Domain.Entities;
@@ -8,7 +9,8 @@ namespace PetCareHub.Application.Services.Implementations;
 public sealed class AlertaSaudeService(
     IAlertaSaudeRepository alertaRepository,
     IPetRepository petRepository,
-    IClinicaRepository clinicaRepository) : IAlertaSaudeService
+    IClinicaRepository clinicaRepository,
+    ILogger<AlertaSaudeService> logger) : IAlertaSaudeService
 {
     public IReadOnlyList<AlertaSaudeResponse> GetAll()
     {
@@ -57,7 +59,10 @@ public sealed class AlertaSaudeService(
     public AlertaSaudeResponse Create(AlertaSaudeRequest request)
     {
         if (!petRepository.Exists(request.PetId))
+        {
+            logger.LogWarning("Tentativa de criar alerta para pet {PetId} inexistente", request.PetId);
             throw new KeyNotFoundException($"Pet com id {request.PetId} não encontrado.");
+        }
 
         var alerta = new AlertaSaude
         {
@@ -67,12 +72,15 @@ public sealed class AlertaSaudeService(
             Mensagem = request.Mensagem,
             ValorDetectado = request.ValorDetectado,
             LimiteReferencia = request.LimiteReferencia,
-            LeituraId = request.LeituraId,
             Resolvido = false,
             DataAlerta = DateTime.Now
         };
 
         alertaRepository.Add(alerta);
+
+        logger.LogInformation(
+            "Alerta {AlertaId} ({NivelAlerta}) criado para o pet {PetId}",
+            alerta.Id, alerta.NivelAlerta, alerta.PetId);
 
         return AlertaSaudeResponse.FromDomain(alerta);
     }
@@ -110,9 +118,15 @@ public sealed class AlertaSaudeService(
             return false;
 
         if (alerta.Resolvido)
+        {
+            logger.LogWarning("Tentativa de resolver alerta {AlertaId} que já está resolvido", id);
             throw new InvalidOperationException("Este alerta já está resolvido.");
+        }
 
         alertaRepository.ResolveAlert(id);
+
+        logger.LogInformation("Alerta {AlertaId} marcado como resolvido", id);
+
         return true;
     }
 }

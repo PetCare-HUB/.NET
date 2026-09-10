@@ -4,7 +4,7 @@ namespace PetCareHub.Application.DTOs;
 
 public record PetResponse(
     long Id,
-    long? ResponsavelId,
+    long? TutorId,
     long? ClinicaId,
     string Nome,
     string Especie,
@@ -20,7 +20,7 @@ public record PetResponse(
     public static PetResponse FromDomain(Pet pet) =>
         new(
             pet.Id,
-            pet.ResponsavelId,
+            pet.TutorId,
             pet.ClinicaId,
             pet.Nome,
             pet.Especie,

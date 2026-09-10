@@ -24,7 +24,5 @@ public record AlertaSaudeRequest(
     decimal? ValorDetectado,
 
     [Range(0, double.MaxValue)]
-    decimal? LimiteReferencia,
-
-    long? LeituraId = null
+    decimal? LimiteReferencia
 );

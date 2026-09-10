@@ -21,9 +21,6 @@ public class AlertaSaudeConfiguration : IEntityTypeConfiguration<AlertaSaude>
             .HasColumnName("ID_PET")
             .IsRequired();
 
-        builder.Property(a => a.LeituraId)
-            .HasColumnName("ID_LEITURA");
-
         builder.Property(a => a.TipoAlerta)
             .HasColumnName("TIPO_ALERTA")
             .HasMaxLength(40)
@@ -67,11 +64,6 @@ public class AlertaSaudeConfiguration : IEntityTypeConfiguration<AlertaSaude>
             .WithMany(p => p.AlertasSaude)
             .HasForeignKey(a => a.PetId)
             .OnDelete(DeleteBehavior.Restrict);
-
-        builder.HasOne(a => a.LeituraSensor)
-            .WithMany(l => l.AlertasSaude)
-            .HasForeignKey(a => a.LeituraId)
-            .OnDelete(DeleteBehavior.SetNull);
 
         builder.HasIndex(a => a.PetId);
         builder.HasIndex(a => a.Resolvido);

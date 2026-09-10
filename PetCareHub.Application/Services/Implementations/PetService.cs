@@ -8,7 +8,7 @@ namespace PetCareHub.Application.Services.Implementations;
 public sealed class PetService(
     IPetRepository petRepository,
     IClinicaRepository clinicaRepository,
-    IResponsavelRepository responsavelRepository) : IPetService
+    ITutorRepository tutorRepository) : IPetService
 {
     public IReadOnlyList<PetResponse> GetAll()
     {
@@ -48,12 +48,12 @@ public sealed class PetService(
         if (!clinicaRepository.Exists(request.ClinicaId))
             throw new KeyNotFoundException($"Clínica com id {request.ClinicaId} não encontrada.");
 
-        if (!responsavelRepository.Exists(request.ResponsavelId))
-            throw new KeyNotFoundException($"Responsável com id {request.ResponsavelId} não encontrado.");
+        if (!tutorRepository.Exists(request.TutorId))
+            throw new KeyNotFoundException($"Tutor com id {request.TutorId} não encontrado.");
 
         var pet = new Pet
         {
-            ResponsavelId = request.ResponsavelId,
+            TutorId = request.TutorId,
             ClinicaId = request.ClinicaId,
             Nome = request.Nome,
             Especie = request.Especie,
@@ -80,10 +80,10 @@ public sealed class PetService(
         if (request.ClinicaId != pet.ClinicaId && !clinicaRepository.Exists(request.ClinicaId))
             throw new KeyNotFoundException($"Clínica com id {request.ClinicaId} não encontrada.");
 
-        if (request.ResponsavelId != pet.ResponsavelId && !responsavelRepository.Exists(request.ResponsavelId))
-            throw new KeyNotFoundException($"Responsável com id {request.ResponsavelId} não encontrado.");
+        if (request.TutorId != pet.TutorId && !tutorRepository.Exists(request.TutorId))
+            throw new KeyNotFoundException($"Tutor com id {request.TutorId} não encontrado.");
 
-        pet.ResponsavelId = request.ResponsavelId;
+        pet.TutorId = request.TutorId;
         pet.ClinicaId = request.ClinicaId;
         pet.Nome = request.Nome;
         pet.Especie = request.Especie;

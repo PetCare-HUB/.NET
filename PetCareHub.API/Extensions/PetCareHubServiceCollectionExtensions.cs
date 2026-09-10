@@ -14,7 +14,7 @@ public static class PetCareHubServiceCollectionExtensions
     {
         services.AddScoped<IConsultaRepository, ConsultaRepository>();
         services.AddScoped<IAlertaSaudeRepository, AlertaSaudeRepository>();
-        services.AddScoped<IResponsavelRepository, ResponsavelRepository>();
+        services.AddScoped<ITutorRepository, TutorRepository>();
         services.AddScoped<IPetRepository, PetRepository>();
         services.AddScoped<IClinicaRepository, ClinicaRepository>();
         services.AddScoped<IScoreSaudeRepository, ScoreSaudeRepository>();
@@ -26,7 +26,7 @@ public static class PetCareHubServiceCollectionExtensions
     {
         services.AddScoped<IConsultaService, ConsultaService>();
         services.AddScoped<IAlertaSaudeService, AlertaSaudeService>();
-        services.AddScoped<IResponsavelService, ResponsavelService>();
+        services.AddScoped<ITutorService, TutorService>();
         services.AddScoped<IPetService, PetService>();
         services.AddScoped<IClinicaService, ClinicaService>();
         services.AddScoped<IScoreSaudeService, ScoreSaudeService>();

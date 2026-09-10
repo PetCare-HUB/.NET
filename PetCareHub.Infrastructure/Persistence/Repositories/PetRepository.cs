@@ -12,7 +12,7 @@ public sealed class PetRepository(PetCareHubContext context)
             .AsNoTracking()
             .Where(p => p.ClinicaId == clinicaId)
             .Include(p => p.Clinica)
-            .Include(p => p.Responsavel)
+            .Include(p => p.Tutor)
             .OrderBy(p => p.Nome)
             .ToList();
 
@@ -21,7 +21,7 @@ public sealed class PetRepository(PetCareHubContext context)
         var query = _context.Pets
             .AsNoTracking()
             .Include(p => p.Clinica)
-            .Include(p => p.Responsavel)
+            .Include(p => p.Tutor)
             .AsQueryable();
 
         if (clinicaId.HasValue)
@@ -40,7 +40,7 @@ public sealed class PetRepository(PetCareHubContext context)
         _context.Pets
             .AsNoTracking()
             .Include(p => p.Clinica)
-            .Include(p => p.Responsavel)
+            .Include(p => p.Tutor)
             .FirstOrDefault(p => p.Id == id);
 
     // FIX bug Oracle EF Core 9.23 — não usar .Any()

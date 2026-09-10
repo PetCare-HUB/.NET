@@ -45,7 +45,7 @@ A aplicação permite:
 
 Esta API é o **dashboard B2B** da clínica veterinária parceira. O ciclo de vida dos dados é dividido entre as APIs da plataforma PetCare Hub:
 
-- **Pets, Responsáveis e Scores de Saúde** são expostos **apenas para leitura** nesta API. O cadastro, atualização e remoção desses recursos pertence à API Java (consumida pelo tutor através do app mobile), que é a fonte de verdade dos dados do animal e do seu responsável. Os Scores de Saúde são calculados pela API Java a partir das leituras IoT e gravados no banco Oracle compartilhado.
+- **Pets, Tutores e Scores de Saúde** são expostos **apenas para leitura** nesta API. O cadastro, atualização e remoção desses recursos pertence à API Java (consumida pelo tutor através do app mobile), que é a fonte de verdade dos dados do animal e do seu tutor. Os Scores de Saúde são calculados pela API Java a partir das leituras IoT e gravados no banco Oracle compartilhado.
 - **Clínicas, Consultas e Alertas de Saúde** possuem **CRUD completo** nesta API, pois representam operações realizadas pela equipe da clínica no seu dia a dia (cadastrar uma clínica parceira, registrar uma consulta, abrir ou resolver um alerta).
 
 Essa separação garante que cada API tenha responsabilidade clara sobre o seu domínio e evita duplicação de regras de negócio entre Java e .NET.
@@ -60,6 +60,10 @@ Essa separação garante que cada API tenha responsabilidade clara sobre o seu d
 - Oracle.EntityFrameworkCore 9.23
 - Oracle Database FIAP
 - Swagger / OpenAPI (Swashbuckle)
+- Serilog (console + arquivo, com correlation id) — logging estruturado
+- OpenTelemetry (tracing + métricas via console exporter)
+- AspNetCore.HealthChecks.Oracle — monitoramento de saúde do banco
+- xUnit + Moq — testes automatizados (unitários e de integração)
 - C# 13 (records, primary constructors)
 - Git e GitHub
 
@@ -75,6 +79,7 @@ PetCareHub
 │   ├── Controllers
 │   ├── Exceptions                 ← GlobalExceptionHandler
 │   ├── Extensions                 ← Registro de serviços
+│   ├── Health                     ← Resposta JSON do /health
 │   ├── Program.cs
 │   └── appsettings.json
 │
@@ -88,36 +93,43 @@ PetCareHub
 ├── PetCareHub.Domain              ← Entidades de domínio (puras)
 │   └── Entities
 │
-└── PetCareHub.Infrastructure      ← Persistência (EF Core + Oracle)
-    └── Persistence
-        ├── Configurations         ← Fluent API por entidade
-        ├── Migrations
-        ├── Repositories
-        ├── PetCareHubContext.cs
-        └── Repository.cs          ← Repositório genérico
+├── PetCareHub.Infrastructure      ← Persistência (EF Core + Oracle)
+│   └── Persistence
+│       ├── Configurations         ← Fluent API por entidade (mapeia o schema já criado pelo Flyway)
+│       ├── Repositories
+│       ├── PetCareHubContext.cs
+│       └── Repository.cs          ← Repositório genérico
+│
+├── PetCareHub.Tests.Unit          ← Testes unitários dos Services (Moq, padrão AAA)
+│   └── Services
+│
+└── PetCareHub.Tests.Integration   ← Testes de integração via WebApplicationFactory
 ```
 
 ---
 
 ## Banco de Dados
 
-A API utiliza o banco Oracle da FIAP, compartilhado com a modelagem da disciplina de Database.
+A API utiliza o **mesmo schema Oracle que a API Java** (fonte de verdade compartilhada da disciplina de Database). O schema é gerenciado exclusivamente pelo **Flyway do Java** — o .NET nunca roda migration própria contra ele, só mapeia as tabelas já existentes via Fluent API.
 
 Tabelas utilizadas pela API:
 
 ```txt
-Classe C#         Tabela Oracle
-Clinica           CLINICA
-Responsavel       RESPONSAVEL
-Pet               PET
-Consulta          CONSULTA
-AlertaSaude       ALERTA_SAUDE
-ScoreSaude        SCORE_SAUDE
-EventoPreventivo  EVENTO_PREVENTIVO
-LeituraSensor     LEITURA_SENSOR
+Classe C#          Tabela Oracle
+Clinica            CLINICA
+Tutor              TUTOR
+Pet                PET
+Consulta           CONSULTA
+AlertaSaude        ALERTA_SAUDE
+ScoreSaude         SCORE_SAUDE
+EventoPreventivo   EVENTO_PREVENTIVO
+ProtocoloPreventivo PROTOCOLO_PREVENTIVO
+LeituraColeira     LEITURA_COLEIRA
+LeituraComedouro   LEITURA_COMEDOURO
+LeituraAmbiente    LEITURA_AMBIENTE
 ```
 
-O mapeamento entre C# e Oracle é feito com **Fluent API** em `PetCareHub.Infrastructure/Persistence/Configurations`, respeitando os nomes reais das tabelas e colunas.
+O mapeamento entre C# e Oracle é feito com **Fluent API** em `PetCareHub.Infrastructure/Persistence/Configurations`, respeitando os nomes reais das tabelas e colunas criadas pelo Flyway. Credenciais de login (`SENHA_HASH` em `TUTOR`/`CLINICA`) não são mapeadas pelo .NET — autenticação é responsabilidade exclusiva da API Java.
 
 ---
 
@@ -338,8 +350,7 @@ GET /api/AlertasSaude?resolvido=false
   "nivelAlerta": "ALTO",
   "mensagem": "Temperatura ambiente acima do recomendado para a raça",
   "valorDetectado": 32.5,
-  "limiteReferencia": 28.0,
-  "leituraId": null
+  "limiteReferencia": 28.0
 }
 ```
 
@@ -372,16 +383,17 @@ GET /api/ScoresSaude?scoreMin=0&scoreMax=50
 
 ---
 
-### 👤 Responsáveis (somente leitura)
+### 👤 Tutores (somente leitura)
 
-> Responsáveis (tutores) são cadastrados pela API Java no momento em que o tutor
-> se registra no app mobile. A clínica apenas consulta essa informação.
+> Tutores são cadastrados/ativados pela API Java (fluxo de primeiro acesso do
+> app mobile). A clínica apenas consulta essa informação; a credencial
+> (`senha_hash`) nunca é exposta pelo .NET.
 
 | Método | Rota | Descrição |
 |---|---|---|
-| `GET` | `/api/Responsaveis`                       | Lista todos os responsáveis |
-| `GET` | `/api/Responsaveis/{id}`                  | Busca responsável pelo ID |
-| `GET` | `/api/Responsaveis/clinica/{clinicaId}`   | Lista responsáveis com pets na clínica |
+| `GET` | `/api/Tutores`                       | Lista todos os tutores |
+| `GET` | `/api/Tutores/{id}`                  | Busca tutor pelo ID |
+| `GET` | `/api/Tutores/clinica/{clinicaId}`   | Lista tutores com pets na clínica |
 
 ---
 
@@ -446,6 +458,78 @@ A documentação inclui:
 - Schemas dos DTOs.
 
 Para testar pelo Swagger, basta usar o botão **"Try it out"** em cada endpoint. Os exemplos de JSON para `POST` e `PUT` estão documentados acima neste README e podem ser copiados e colados diretamente no campo "Request body".
+
+---
+
+## Monitoramento
+
+A API expõe um endpoint de health check em:
+
+```txt
+GET /health
+```
+
+Ele verifica a conectividade com o banco Oracle da FIAP (check `oracle-db`), respondendo em
+formato JSON:
+
+```json
+{
+  "status": "Healthy",
+  "duration": "00:00:00.3363583",
+  "checks": [
+    {
+      "name": "oracle-db",
+      "status": "Healthy",
+      "description": null,
+      "duration": "00:00:00.3339239",
+      "error": null
+    }
+  ]
+}
+```
+
+Quando o Oracle está inacessível ou as credenciais estão erradas, `status` e o check
+`oracle-db` voltam como `Unhealthy` (HTTP 503) e o campo `error` traz a mensagem original do
+banco (ex.: `ORA-01017: invalid username/password`).
+
+---
+
+## Observabilidade
+
+- **Logging estruturado**: [Serilog](https://serilog.net/) grava em dois destinos — console
+  (com timestamp, nível e correlation id) e arquivo (`PetCareHub.API/logs/petcarehub-<data>.log`,
+  um arquivo novo por dia). Toda requisição recebe um correlation id (via pacote
+  [`CorrelationId`](https://github.com/stevejgordon/CorrelationId)), propagado nos logs pelo
+  enricher `Serilog.Enrichers.CorrelationId`. Os `Services` de `Clinica`, `Consulta` e
+  `AlertaSaude` logam os eventos de negócio mais relevantes (criação, atualização, bloqueios de
+  regra de negócio); o `GlobalExceptionHandler` loga toda exceção não tratada.
+- **Tracing e métricas**: [OpenTelemetry](https://opentelemetry.io/) instrumenta ASP.NET Core e
+  `HttpClient`, exportando spans (tracing) e métricas de runtime/HTTP direto no console via
+  `AddConsoleExporter()` — não é necessário nenhum coletor externo (Jaeger/Zipkin/Prometheus)
+  para visualizar os dados durante o desenvolvimento.
+
+---
+
+## Testes
+
+O projeto usa [xUnit](https://xunit.net/) com padrão **AAA** (Arrange, Act, Assert) e
+nomenclatura `MetodoTestado_Cenario_ResultadoEsperado`, dividido em dois projetos:
+
+```bash
+dotnet test
+```
+
+- **`PetCareHub.Tests.Unit`**: testes unitários dos `Services` (`ClinicaService`,
+  `ConsultaService`, `AlertaSaudeService`, `PetService`), com os repositórios mockados via
+  [Moq](https://github.com/devlooped/moq) — cobrindo caso feliz e caso de erro de cada regra de
+  negócio.
+- **`PetCareHub.Tests.Integration`**: testes de ponta a ponta via `WebApplicationFactory<Program>`
+  (compartilhada entre as classes de teste através de `ICollectionFixture`), batendo nos
+  endpoints reais da API. Como o projeto não tem um provider in-memory para o EF Core (só
+  `Oracle.EntityFrameworkCore`), esses testes rodam contra o **Oracle real da FIAP** — por isso
+  são propositalmente **somente leitura/validação** (GETs e um POST inválido que nunca chega a
+  tocar no banco), pra não sujar dados da turma. Rodar `dotnet test` exige a mesma rede/VPN da
+  FIAP usada pelo `dotnet run`.
 
 ---
 

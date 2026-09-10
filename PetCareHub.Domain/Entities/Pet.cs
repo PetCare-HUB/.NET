@@ -4,8 +4,8 @@ public class Pet
 {
     public long Id { get; set; }
 
-    public long ResponsavelId { get; set; }
-    public Responsavel? Responsavel { get; set; }
+    public long TutorId { get; set; }
+    public Tutor? Tutor { get; set; }
 
     public long ClinicaId { get; set; }
 
@@ -33,7 +33,11 @@ public class Pet
 
     public ICollection<EventoPreventivo> EventosPreventivos { get; set; } = new List<EventoPreventivo>();
 
-    public ICollection<LeituraSensor> LeiturasSensor { get; set; } = new List<LeituraSensor>();
+    public ICollection<LeituraColeira> LeiturasColeira { get; set; } = new List<LeituraColeira>();
+
+    public ICollection<LeituraComedouro> LeiturasComedouro { get; set; } = new List<LeituraComedouro>();
+
+    public ICollection<LeituraAmbiente> LeiturasAmbiente { get; set; } = new List<LeituraAmbiente>();
 
     public ICollection<AlertaSaude> AlertasSaude { get; set; } = new List<AlertaSaude>();
 

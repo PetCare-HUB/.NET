@@ -17,8 +17,8 @@ public class PetConfiguration : IEntityTypeConfiguration<Pet>
             .HasDefaultValueSql("SEQ_PET.NEXTVAL")
             .ValueGeneratedOnAdd();
 
-        builder.Property(p => p.ResponsavelId)
-            .HasColumnName("ID_RESPONSAVEL")
+        builder.Property(p => p.TutorId)
+            .HasColumnName("ID_TUTOR")
             .IsRequired();
 
         builder.Property(p => p.ClinicaId)
@@ -75,13 +75,13 @@ public class PetConfiguration : IEntityTypeConfiguration<Pet>
             .HasForeignKey(p => p.ClinicaId)
             .OnDelete(DeleteBehavior.Restrict);
 
-        builder.HasOne(p => p.Responsavel)
-            .WithMany(r => r.Pets)
-            .HasForeignKey(p => p.ResponsavelId)
+        builder.HasOne(p => p.Tutor)
+            .WithMany(t => t.Pets)
+            .HasForeignKey(p => p.TutorId)
             .OnDelete(DeleteBehavior.Restrict);
 
         builder.HasIndex(p => p.ClinicaId);
-        builder.HasIndex(p => p.ResponsavelId);
+        builder.HasIndex(p => p.TutorId);
         builder.HasIndex(p => p.Especie);
     }
 }

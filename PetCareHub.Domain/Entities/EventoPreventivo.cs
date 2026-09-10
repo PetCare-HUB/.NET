@@ -19,4 +19,6 @@ public class EventoPreventivo
     public string Status { get; set; } = "PENDENTE";
 
     public Pet? Pet { get; set; }
+
+    public ProtocoloPreventivo? Protocolo { get; set; }
 }

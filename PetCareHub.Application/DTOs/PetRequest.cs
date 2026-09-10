@@ -3,8 +3,8 @@
 namespace PetCareHub.Application.DTOs;
 
 public record PetRequest(
-    [Required(ErrorMessage = "O ID do responsável é obrigatório")]
-    long ResponsavelId,
+    [Required(ErrorMessage = "O ID do tutor é obrigatório")]
+    long TutorId,
 
     [Required(ErrorMessage = "O ID da clínica é obrigatório")]
     long ClinicaId,
