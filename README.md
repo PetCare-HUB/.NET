@@ -35,7 +35,7 @@ A aplicação permite:
 - Gerenciar consultas via CRUD completo (com filtros por clínica, pet, tipo e retorno);
 - Gerenciar alertas de saúde via CRUD completo (com filtros por pet, nível e situação);
 - Resolver alertas;
-- Consultar responsáveis pelos pets;
+- Consultar tutores dos pets;
 - Consultar scores de saúde com filtros por categoria e faixa de score;
 - Exibir métricas consolidadas no dashboard.
 
@@ -178,21 +178,16 @@ cd PetCareHub
 dotnet restore
 ```
 
-### 3. Aplicar as migrations no banco (apenas em ambiente novo)
-
-> Se o schema Oracle da FIAP já possuir as tabelas criadas pela modelagem de Database, pule este passo.
-
-```bash
-dotnet ef database update --project PetCareHub.Infrastructure --startup-project PetCareHub.API
-```
-
-### 4. Compilar o projeto
+### 3. Compilar o projeto
 
 ```bash
 dotnet build
 ```
 
-### 5. Executar a API
+> O schema Oracle já existe e é gerenciado pelo Flyway da API Java — não é preciso (nem
+> recomendado) rodar nenhuma migration do .NET. Veja a seção [Migrations](#migrations) abaixo.
+
+### 4. Executar a API
 
 ```bash
 dotnet run --project PetCareHub.API
@@ -204,7 +199,7 @@ A aplicação será iniciada em:
 http://localhost:5062
 ```
 
-### 6. Acessar o Swagger
+### 5. Acessar o Swagger
 
 O Swagger é servido na **raiz** da aplicação (não em `/swagger`), pois `RoutePrefix` está configurado como vazio.
 
@@ -218,19 +213,19 @@ http://localhost:5062/
 
 ## Migrations
 
-O projeto utiliza Entity Framework Core Migrations.
+Na Sprint 2, o schema Oracle deste projeto foi criado e evoluído com **Entity Framework Core
+Migrations** próprias do .NET (`dotnet ef migrations add` / `dotnet ef database update`).
 
-Para criar uma nova migration:
+A partir da Sprint 3, com a integração real com a API Java, ficou definido que o schema Oracle é
+**compartilhado** entre as duas APIs — e que o **Flyway do Java** é quem gerencia esse schema
+(criação de tabelas, renomeações, novas colunas). Manter duas ferramentas de migration diferentes
+alterando o mesmo banco gera risco real de conflito (uma tabela renomeada de um lado sem o outro
+lado saber, por exemplo).
 
-```bash
-dotnet ef migrations add NomeDaMigration --project PetCareHub.Infrastructure --startup-project PetCareHub.API --output-dir Persistence/Migrations
-```
-
-Para aplicar migrations no banco:
-
-```bash
-dotnet ef database update --project PetCareHub.Infrastructure --startup-project PetCareHub.API
-```
+Por isso, o .NET **não usa mais Migrations própria** a partir desta sprint: o `PetCareHub.Infrastructure/Persistence/Configurations`
+apenas mapeia, via Fluent API, o schema que o Flyway do Java já criou. Não existe mais `dotnet ef
+migrations add` nem `dotnet ef database update` neste projeto — se o modelo mudar, o ajuste é só
+nas classes de `Configurations`, nunca em uma migration.
 
 ---
 
