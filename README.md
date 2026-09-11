@@ -520,16 +520,17 @@ dotnet test
 ```
 
 - **`PetCareHub.Tests.Unit`**: testes unitários dos `Services` (`ClinicaService`,
-  `ConsultaService`, `AlertaSaudeService`, `PetService`), com os repositórios mockados via
-  [Moq](https://github.com/devlooped/moq) — cobrindo caso feliz e caso de erro de cada regra de
-  negócio.
+  `ConsultaService`, `AlertaSaudeService`, `PetService`, `TutorService`), com os repositórios
+  mockados via [Moq](https://github.com/devlooped/moq) — cobrindo caso feliz e caso de erro de
+  cada regra de negócio.
 - **`PetCareHub.Tests.Integration`**: testes de ponta a ponta via `WebApplicationFactory<Program>`
   (compartilhada entre as classes de teste através de `ICollectionFixture`), batendo nos
-  endpoints reais da API. Como o projeto não tem um provider in-memory para o EF Core (só
-  `Oracle.EntityFrameworkCore`), esses testes rodam contra o **Oracle real da FIAP** — por isso
-  são propositalmente **somente leitura/validação** (GETs e um POST inválido que nunca chega a
-  tocar no banco), pra não sujar dados da turma. Rodar `dotnet test` exige a mesma rede/VPN da
-  FIAP usada pelo `dotnet run`.
+  endpoints reais da API — um teste por controller (`Clinicas`, `Consultas`, `Pets`, `Tutores`,
+  `AlertasSaude`, `ScoresSaude`, `Dashboard`) mais o health check. Como o projeto não tem um
+  provider in-memory para o EF Core (só `Oracle.EntityFrameworkCore`), esses testes rodam contra
+  o **Oracle real da FIAP** — por isso são propositalmente **somente leitura/validação** (GETs e
+  um POST inválido que nunca chega a tocar no banco), pra não sujar dados da turma. Rodar
+  `dotnet test` exige a mesma rede/VPN da FIAP usada pelo `dotnet run`.
 
 ---
 
