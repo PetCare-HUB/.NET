@@ -58,15 +58,4 @@ public sealed class AlertaSaudeRepository(PetCareHubContext context)
 
         return query.OrderByDescending(a => a.DataAlerta).ToList();
     }
-
-    public void ResolveAlert(long alertaId)
-    {
-        var alerta = _context.AlertasSaude.Find(alertaId);
-        if (alerta is not null)
-        {
-            alerta.Resolvido = true;
-            alerta.DataResolucao = DateTime.Now;
-            _context.SaveChanges();
-        }
-    }
 }

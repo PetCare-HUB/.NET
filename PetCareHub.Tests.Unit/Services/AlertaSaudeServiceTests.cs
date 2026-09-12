@@ -50,7 +50,7 @@ public class AlertaSaudeServiceTests
 
         // Assert
         Assert.Throws<InvalidOperationException>(Act);
-        _alertaRepository.Verify(r => r.ResolveAlert(It.IsAny<long>()), Times.Never);
+        _alertaRepository.Verify(r => r.Update(It.IsAny<AlertaSaude>()), Times.Never);
     }
 
     [Fact]
@@ -65,6 +65,7 @@ public class AlertaSaudeServiceTests
 
         // Assert
         Assert.True(resultado);
-        _alertaRepository.Verify(r => r.ResolveAlert(1), Times.Once);
+        Assert.True(alerta.Resolvido);
+        _alertaRepository.Verify(r => r.Update(alerta), Times.Once);
     }
 }

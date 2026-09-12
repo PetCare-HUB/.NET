@@ -125,13 +125,17 @@ public sealed class AlertaSaudeService(
         if (alerta is null)
             return false;
 
-        if (alerta.Resolvido)
+        try
+        {
+            alerta.Resolver();
+        }
+        catch (InvalidOperationException)
         {
             logger.LogWarning("Tentativa de resolver alerta {AlertaId} que já está resolvido", id);
-            throw new InvalidOperationException("Este alerta já está resolvido.");
+            throw;
         }
 
-        alertaRepository.ResolveAlert(id);
+        alertaRepository.Update(alerta);
 
         logger.LogInformation("Alerta {AlertaId} marcado como resolvido", id);
 

@@ -91,10 +91,14 @@ public sealed class ClinicaService(
         if (clinica is null)
             return false;
 
-        if (clinicaRepository.HasPets(id))
+        try
+        {
+            clinica.GarantirQuePodeSerExcluida(clinicaRepository.HasPets(id));
+        }
+        catch (InvalidOperationException)
         {
             logger.LogWarning("Tentativa de deletar clínica {ClinicaId} que possui pets vinculados", id);
-            throw new InvalidOperationException("Não é possível deletar uma clínica que possui pets vinculados.");
+            throw;
         }
 
         var deletado = clinicaRepository.Delete(id);

@@ -23,4 +23,17 @@ public class AlertaSaude
     public DateTime? DataResolucao { get; set; }
 
     public Pet? Pet { get; set; }
+
+    /// <summary>
+    /// Marca o alerta como resolvido. Um alerta já resolvido não pode ser resolvido de
+    /// novo — quem chama decide o que fazer com a exceção (a API converte em 400).
+    /// </summary>
+    public void Resolver()
+    {
+        if (Resolvido)
+            throw new InvalidOperationException("Este alerta já está resolvido.");
+
+        Resolvido = true;
+        DataResolucao = DateTime.Now;
+    }
 }
