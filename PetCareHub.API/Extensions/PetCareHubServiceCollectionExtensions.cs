@@ -1,4 +1,7 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using System.Security.Cryptography;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.IdentityModel.Tokens;
 using PetCareHub.Application.Repositories;
 using PetCareHub.Application.Services.Implementations;
 using PetCareHub.Application.Services.Interfaces;
@@ -43,6 +46,57 @@ public static class PetCareHubServiceCollectionExtensions
 
         services.AddDbContext<PetCareHubContext>(options =>
             options.UseOracle(connectionString));
+
+        return services;
+    }
+
+    /// <summary>
+    /// Valida os mesmos tokens JWT (RS256) emitidos pela API Java — o .NET nunca emite
+    /// token, só confia na assinatura RSA e nas claims (role, clinicaId/tutorId) de quem
+    /// já autenticou no Java. A chave pública vem de <c>Jwt:PublicKeyPem</c> (útil para
+    /// injetar via variável de ambiente <c>Jwt__PublicKeyPem</c> em produção, com o mesmo
+    /// valor configurado como RSA_PUBLIC_KEY no Java) ou, na ausência dela, do arquivo
+    /// <c>Keys/public_key.pem</c> commitado (chave de desenvolvimento/teste, a mesma usada
+    /// pela suíte de testes do Java — nunca a chave real de produção).
+    /// </summary>
+    public static IServiceCollection AddPetCareHubAuthentication(
+        this IServiceCollection services,
+        IConfiguration configuration)
+    {
+        var publicKeyPem = configuration["Jwt:PublicKeyPem"];
+        if (string.IsNullOrWhiteSpace(publicKeyPem))
+        {
+            var keyPath = Path.Combine(AppContext.BaseDirectory, "Keys", "public_key.pem");
+            publicKeyPem = File.ReadAllText(keyPath);
+        }
+
+        var rsa = RSA.Create();
+        rsa.ImportFromPem(publicKeyPem);
+
+        services
+            .AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+            .AddJwtBearer(options =>
+            {
+                // Sem isso, o handler renomeia a claim "role" para a URI legada
+                // ClaimTypes.Role por baixo dos panos, e o RoleClaimType abaixo (que aponta
+                // pro nome real da claim emitida pelo Java) deixa de bater com nada —
+                // [Authorize(Roles=...)] falha com 403 mesmo para um token válido.
+                options.MapInboundClaims = false;
+                options.TokenValidationParameters = new TokenValidationParameters
+                {
+                    ValidateIssuer = true,
+                    ValidIssuer = "petcare-hub-api",
+                    ValidateAudience = false,
+                    ValidateLifetime = true,
+                    ValidateIssuerSigningKey = true,
+                    IssuerSigningKey = new RsaSecurityKey(rsa),
+                    RoleClaimType = "role",
+                    NameClaimType = "sub",
+                    ClockSkew = TimeSpan.FromSeconds(30)
+                };
+            });
+
+        services.AddAuthorization();
 
         return services;
     }

@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using PetCareHub.Infrastructure.Persistence;
 
@@ -6,6 +7,7 @@ namespace PetCareHub.API.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
+[Authorize(Roles = "CLINICA")]
 public class DashboardController : ControllerBase
 {
     private readonly PetCareHubContext _context;

@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using PetCareHub.Application.DTOs;
 using PetCareHub.Application.Services.Interfaces;
@@ -7,6 +8,7 @@ namespace PetCareHub.API.Controllers;
 [Route("api/[controller]")]
 [ApiController]
 [Produces("application/json")]
+[Authorize(Roles = "CLINICA")]
 public class TutoresController(ITutorService tutorService) : ControllerBase
 {
 

@@ -10,6 +10,8 @@ using OpenTelemetry.Trace;
 using PetCareHub.API.Exceptions;
 using PetCareHub.API.Extensions;
 using PetCareHub.API.Health;
+using PetCareHub.Application.Diagnostics;
+using PetCareHub.Infrastructure.Diagnostics;
 using Serilog;
 using Serilog.Events;
 
@@ -42,6 +44,8 @@ public class Program
 
         builder.Services.AddPetCareHubApplicationServices();
 
+        builder.Services.AddPetCareHubAuthentication(builder.Configuration);
+
         builder.Services.AddControllers();
 
         builder.Services.AddEndpointsApiExplorer();
@@ -52,6 +56,8 @@ public class Program
         builder.Services.AddOpenTelemetry()
             .ConfigureResource(resource => resource.AddService("PetCareHub.API"))
             .WithTracing(tracing => tracing
+                .AddSource(AppTelemetry.SourceName)
+                .AddSource(InfraTelemetry.SourceName)
                 .AddAspNetCoreInstrumentation()
                 .AddHttpClientInstrumentation()
                 .AddConsoleExporter())
@@ -62,11 +68,19 @@ public class Program
 
         builder.Services
             .AddHealthChecks()
+            // Liveness: só confirma que o processo da API está de pé, sem tocar em
+            // nenhuma dependência externa — nunca falha por causa do Oracle.
+            .AddCheck(
+                "self",
+                () => HealthCheckResult.Healthy("API em execução."),
+                tags: new[] { "live" })
+            // Readiness: a única dependência externa que o .NET realmente chama é o
+            // Oracle (nenhuma outra API/fila/serviço terceiro é consumida por esta API).
             .AddOracle(
                 builder.Configuration.GetConnectionString("DefaultConnection")!,
                 name: "oracle-db",
                 failureStatus: HealthStatus.Unhealthy,
-                tags: new[] { "db", "oracle" });
+                tags: new[] { "ready", "db", "oracle" });
 
         builder.Services.AddSwaggerGen(options =>
         {
@@ -115,11 +129,29 @@ public class Program
         }
 
         app.UseHttpsRedirection();
+        app.UseAuthentication();
         app.UseAuthorization();
         app.MapControllers();
 
+        // Combinado (compatibilidade com quem já monitora só /health).
         app.MapHealthChecks("/health", new HealthCheckOptions
         {
+            ResponseWriter = HealthCheckResponseWriter.WriteJsonResponse
+        });
+
+        // Liveness — só o "self", nunca depende do Oracle. É esse que uma orquestração
+        // (ex.: restart automático) deveria checar para saber se o processo travou.
+        app.MapHealthChecks("/health/live", new HealthCheckOptions
+        {
+            Predicate = check => check.Tags.Contains("live"),
+            ResponseWriter = HealthCheckResponseWriter.WriteJsonResponse
+        });
+
+        // Readiness — só as dependências externas (hoje, só o Oracle). É esse que decide
+        // se a API está pronta para receber tráfego real.
+        app.MapHealthChecks("/health/ready", new HealthCheckOptions
+        {
+            Predicate = check => check.Tags.Contains("ready"),
             ResponseWriter = HealthCheckResponseWriter.WriteJsonResponse
         });
 
