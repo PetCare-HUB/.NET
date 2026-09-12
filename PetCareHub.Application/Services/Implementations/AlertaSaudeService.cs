@@ -1,5 +1,6 @@
 ﻿using Microsoft.Extensions.Logging;
 using PetCareHub.Application.DTOs;
+using PetCareHub.Application.Diagnostics;
 using PetCareHub.Application.Repositories;
 using PetCareHub.Application.Services.Interfaces;
 using PetCareHub.Domain.Entities;
@@ -58,6 +59,10 @@ public sealed class AlertaSaudeService(
 
     public AlertaSaudeResponse Create(AlertaSaudeRequest request)
     {
+        using var activity = AppTelemetry.Source.StartActivity("AlertaSaudeService.Create");
+        activity?.SetTag("pet.id", request.PetId);
+        activity?.SetTag("alerta.nivel", request.NivelAlerta);
+
         if (!petRepository.Exists(request.PetId))
         {
             logger.LogWarning("Tentativa de criar alerta para pet {PetId} inexistente", request.PetId);
@@ -113,6 +118,9 @@ public sealed class AlertaSaudeService(
 
     public bool Resolve(long id)
     {
+        using var activity = AppTelemetry.Source.StartActivity("AlertaSaudeService.Resolve");
+        activity?.SetTag("alerta.id", id);
+
         var alerta = alertaRepository.GetById(id);
         if (alerta is null)
             return false;

@@ -1,5 +1,6 @@
 ﻿using Microsoft.Extensions.Logging;
 using PetCareHub.Application.DTOs;
+using PetCareHub.Application.Diagnostics;
 using PetCareHub.Application.Repositories;
 using PetCareHub.Application.Services.Interfaces;
 using PetCareHub.Domain.Entities;
@@ -62,6 +63,10 @@ public sealed class ConsultaService(
 
     public ConsultaResponse Create(ConsultaRequest request)
     {
+        using var activity = AppTelemetry.Source.StartActivity("ConsultaService.Create");
+        activity?.SetTag("pet.id", request.PetId);
+        activity?.SetTag("clinica.id", request.ClinicaId);
+
         if (!petRepository.Exists(request.PetId))
         {
             logger.LogWarning("Tentativa de criar consulta para pet {PetId} inexistente", request.PetId);
@@ -96,6 +101,9 @@ public sealed class ConsultaService(
 
     public ConsultaResponse? Update(long id, ConsultaRequest request)
     {
+        using var activity = AppTelemetry.Source.StartActivity("ConsultaService.Update");
+        activity?.SetTag("consulta.id", id);
+
         var consulta = consultaRepository.GetById(id);
         if (consulta is null)
             return null;

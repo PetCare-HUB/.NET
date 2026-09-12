@@ -1,5 +1,6 @@
 ﻿using Microsoft.Extensions.Logging;
 using PetCareHub.Application.DTOs;
+using PetCareHub.Application.Diagnostics;
 using PetCareHub.Application.Repositories;
 using PetCareHub.Application.Services.Interfaces;
 using PetCareHub.Domain.Entities;
@@ -26,6 +27,9 @@ public sealed class ClinicaService(
     
     public ClinicaResponse Create(ClinicaRequest request)
     {
+        using var activity = AppTelemetry.Source.StartActivity("ClinicaService.Create");
+        activity?.SetTag("clinica.cnpj", request.Cnpj);
+
         if (clinicaRepository.ExistsByCnpj(request.Cnpj))
         {
             logger.LogWarning("Tentativa de criar clínica com CNPJ {Cnpj} já cadastrado", request.Cnpj);
@@ -51,6 +55,9 @@ public sealed class ClinicaService(
     
     public ClinicaResponse? Update(long id, ClinicaRequest request)
     {
+        using var activity = AppTelemetry.Source.StartActivity("ClinicaService.Update");
+        activity?.SetTag("clinica.id", id);
+
         var clinica = clinicaRepository.GetById(id);
         if (clinica is null)
             return null;
@@ -77,6 +84,9 @@ public sealed class ClinicaService(
     
     public bool Delete(long id)
     {
+        using var activity = AppTelemetry.Source.StartActivity("ClinicaService.Delete");
+        activity?.SetTag("clinica.id", id);
+
         var clinica = clinicaRepository.GetById(id);
         if (clinica is null)
             return false;
