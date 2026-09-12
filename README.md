@@ -52,6 +52,53 @@ Essa separação garante que cada API tenha responsabilidade clara sobre o seu d
 
 ---
 
+## Autenticação
+
+O .NET **nunca emite token** — quem faz login (e-mail/senha) é a API Java, via `POST /auth/login`.
+O .NET só **valida** esse mesmo token: confere a assinatura RSA (RS256), o emissor
+(`petcare-hub-api`), a validade e a claim `role`.
+
+Todos os endpoints de dados (`Clinicas`, `Consultas`, `AlertasSaude`, `Pets`, `ScoresSaude`,
+`Tutores`, `Dashboard`) exigem um `Authorization: Bearer <token>` com `role = CLINICA` — é
+coerente com o resto do README: esta API é o dashboard B2B da clínica, não existe fluxo de
+tutor aqui. Só `/health`, `/health/live` e `/health/ready` ficam públicos (é o que uma
+ferramenta de monitoramento externa chama, sem credencial nenhuma).
+
+| Situação | Resposta |
+|---|---|
+| Sem header `Authorization` | `401 Unauthorized` |
+| Token malformado, assinatura inválida ou expirado | `401 Unauthorized` |
+| Token válido, mas `role` diferente de `CLINICA` (ex.: `TUTOR`) | `403 Forbidden` |
+| Token válido com `role = CLINICA` | segue normalmente |
+
+### Como conseguir um token para testar
+
+1. Suba a API Java localmente (ela cria a clínica de exemplo automaticamente em banco vazio —
+   ver o `DataLoader` no README do Java) ou use as credenciais de uma clínica já cadastrada no
+   Oracle compartilhado.
+2. Chame `POST /auth/login` na API Java (Swagger em `/swagger-ui.html`) com o e-mail/senha da
+   clínica.
+3. Use o `token` da resposta como Bearer nas chamadas ao Swagger desta API .NET (botão
+   **"Authorize"**).
+
+### Configuração da chave pública
+
+A assinatura é validada com a mesma chave RSA pública que o Java usa para assinar (nunca a
+chave privada — o .NET só verifica, não emite). Por padrão, a API usa a chave de
+desenvolvimento/teste commitada em `PetCareHub.API/Keys/public_key.pem` (a mesma usada pela
+suíte de testes do lado Java). Em produção, sobrescreva com a chave pública real via variável
+de ambiente:
+
+```txt
+Jwt__PublicKeyPem="-----BEGIN PUBLIC KEY-----\n...\n-----END PUBLIC KEY-----"
+```
+
+> **Importante:** essa variável precisa conter exatamente a mesma chave pública configurada
+> como `RSA_PUBLIC_KEY` na API Java — se as chaves não baterem, todo token é rejeitado com
+> `401`, mesmo sendo um token real e válido emitido pelo Java.
+
+---
+
 ## Tecnologias Utilizadas
 
 - .NET 9
@@ -59,6 +106,7 @@ Essa separação garante que cada API tenha responsabilidade clara sobre o seu d
 - Entity Framework Core 9
 - Oracle.EntityFrameworkCore 9.23
 - Oracle Database FIAP
+- JWT Bearer (RS256) — valida os mesmos tokens emitidos pela API Java, não emite token próprio
 - Swagger / OpenAPI (Swashbuckle)
 - Serilog (console + arquivo, com correlation id) — logging estruturado
 - OpenTelemetry (tracing + métricas via console exporter)
@@ -168,8 +216,8 @@ Com o seguinte conteúdo:
 ### 1. Clonar o repositório
 
 ```bash
-git clone <url-do-repositorio>
-cd PetCareHub
+git clone https://github.com/PetCare-HUB/.NET.git
+cd .NET
 ```
 
 ### 2. Restaurar os pacotes
@@ -232,6 +280,10 @@ nas classes de `Configurations`, nunca em uma migration.
 ## Endpoints Disponíveis
 
 Todos os endpoints seguem o padrão REST e estão documentados no Swagger.
+
+> **Todos os endpoints abaixo exigem `Authorization: Bearer <token>` com `role = CLINICA`**
+> (ver [Autenticação](#autenticação)). Isso não está repetido em cada tabela para não poluir —
+> vale para Clínicas, Pets, Consultas, Alertas de Saúde, Scores de Saúde, Tutores e Dashboard.
 
 ### 🏥 Clínicas (CRUD completo)
 
@@ -458,20 +510,34 @@ Para testar pelo Swagger, basta usar o botão **"Try it out"** em cada endpoint.
 
 ## Monitoramento
 
-A API expõe um endpoint de health check em:
+A API separa **liveness** (o processo está de pé?) de **readiness** (as dependências externas
+estão OK?) em três endpoints:
 
-```txt
-GET /health
-```
+| Rota | O que verifica | Quando usar |
+|---|---|---|
+| `GET /health/live` | Só o próprio processo (`self`) — nunca toca no Oracle | Uma orquestração decidindo se precisa reiniciar o processo |
+| `GET /health/ready` | Só as dependências externas — hoje, só o `oracle-db` | Decidir se a API está pronta para receber tráfego real |
+| `GET /health` | Os dois checks juntos (`self` + `oracle-db`) | Compatibilidade / visão geral rápida |
 
-Ele verifica a conectividade com o banco Oracle da FIAP (check `oracle-db`), respondendo em
-formato JSON:
+> A **única** dependência externa que esta API chama é o Oracle da FIAP — não há fila,
+> gateway de pagamento ou outra API de terceiro no caminho. Por isso só existe um
+> dependency check (`oracle-db`); se um dia entrar uma integração nova (ex.: consumir a API
+> Java), o check dela entraria em `/health/ready` também.
+
+Formato de resposta (igual nos três endpoints):
 
 ```json
 {
   "status": "Healthy",
   "duration": "00:00:00.3363583",
   "checks": [
+    {
+      "name": "self",
+      "status": "Healthy",
+      "description": "API em execução.",
+      "duration": "00:00:00.0000010",
+      "error": null
+    },
     {
       "name": "oracle-db",
       "status": "Healthy",
@@ -483,9 +549,11 @@ formato JSON:
 }
 ```
 
-Quando o Oracle está inacessível ou as credenciais estão erradas, `status` e o check
-`oracle-db` voltam como `Unhealthy` (HTTP 503) e o campo `error` traz a mensagem original do
-banco (ex.: `ORA-01017: invalid username/password`).
+Quando o Oracle está inacessível ou as credenciais estão erradas, o check `oracle-db` (e por
+consequência `/health` e `/health/ready`) volta como `Unhealthy` (HTTP 503), com o campo
+`error` trazendo a mensagem original do banco (ex.: `ORA-01017: invalid username/password`).
+`/health/live` continua `Healthy` nesse cenário — é exatamente o ponto de ele existir
+separado: o processo está bem, só uma dependência dele que não está.
 
 ---
 
@@ -499,9 +567,30 @@ banco (ex.: `ORA-01017: invalid username/password`).
   `AlertaSaude` logam os eventos de negócio mais relevantes (criação, atualização, bloqueios de
   regra de negócio); o `GlobalExceptionHandler` loga toda exceção não tratada.
 - **Tracing e métricas**: [OpenTelemetry](https://opentelemetry.io/) instrumenta ASP.NET Core e
-  `HttpClient`, exportando spans (tracing) e métricas de runtime/HTTP direto no console via
+  `HttpClient` automaticamente (um span por requisição HTTP), exportando tudo no console via
   `AddConsoleExporter()` — não é necessário nenhum coletor externo (Jaeger/Zipkin/Prometheus)
-  para visualizar os dados durante o desenvolvimento.
+  para visualizar os dados durante o desenvolvimento. Além disso, dois `ActivitySource`
+  manuais criam spans **filhos** desse span de requisição, ligados a ele automaticamente
+  pelo próprio `Activity.Current` do .NET:
+  - `PetCareHub.Application` ([`AppTelemetry`](PetCareHub.Application/Diagnostics/AppTelemetry.cs)) — nas
+    operações de negócio dos `Services` que fazem validação/gravação (`ClinicaService.Create/Update/Delete`,
+    `ConsultaService.Create/Update`, `AlertaSaudeService.Create/Resolve`);
+  - `PetCareHub.Infrastructure` ([`InfraTelemetry`](PetCareHub.Infrastructure/Diagnostics/InfraTelemetry.cs)) —
+    em todo `GetAll/GetById/Add/Update/Delete/Exists` do `Repository<T>` genérico, cobrindo a
+    persistência de qualquer entidade automaticamente.
+
+  **Como ler tempo de resposta**: com o console exporter, cada span impresso mostra
+  `Start Time` e `Duration` — a duração do span raiz (`Microsoft.AspNetCore.Hosting.HttpRequestIn`)
+  é o tempo de resposta da requisição inteira; os spans filhos (`ClinicaService.Create`,
+  `Clinica.Add`, etc.) mostram quanto desse tempo total foi gasto em regra de negócio vs.
+  em banco — útil pra achar gargalo sem precisar de um APM externo.
+
+  **Como calcular taxa de erro**: o exporter de métricas imprime periodicamente o histograma
+  `http.server.request.duration`, que tem uma dimensão `http.response.status_code` por
+  requisição. Taxa de erro = (soma das contagens com `status_code >= 500`) / (soma de todas
+  as contagens) no período — como é console exporter, isso é uma conta manual sobre a saída
+  impressa; para calcular automaticamente (ex.: alerta se erro > 5%), o próximo passo seria
+  trocar `AddConsoleExporter()` por `AddOtlpExporter()` apontando pra um Prometheus/Grafana.
 
 ---
 
@@ -515,17 +604,36 @@ dotnet test
 ```
 
 - **`PetCareHub.Tests.Unit`**: testes unitários dos `Services` (`ClinicaService`,
-  `ConsultaService`, `AlertaSaudeService`, `PetService`, `TutorService`), com os repositórios
-  mockados via [Moq](https://github.com/devlooped/moq) — cobrindo caso feliz e caso de erro de
-  cada regra de negócio.
+  `ConsultaService`, `AlertaSaudeService`, `PetService`, `TutorService`) — são, na prática, os
+  testes de regra de negócio do projeto: as entidades em `PetCareHub.Domain` são POCOs sem
+  comportamento próprio, então é aqui que ficam as regras reais (CNPJ duplicado ao criar/atualizar
+  clínica, não deletar clínica com pets vinculados, não resolver um alerta já resolvido, não criar
+  consulta/alerta para pet ou clínica inexistente). Repositórios mockados via
+  [Moq](https://github.com/devlooped/moq), cobrindo caso feliz e caso de erro de cada regra.
 - **`PetCareHub.Tests.Integration`**: testes de ponta a ponta via `WebApplicationFactory<Program>`
   (compartilhada entre as classes de teste através de `ICollectionFixture`), batendo nos
-  endpoints reais da API — um teste por controller (`Clinicas`, `Consultas`, `Pets`, `Tutores`,
-  `AlertasSaude`, `ScoresSaude`, `Dashboard`) mais o health check. Como o projeto não tem um
-  provider in-memory para o EF Core (só `Oracle.EntityFrameworkCore`), esses testes rodam contra
-  o **Oracle real da FIAP** — por isso são propositalmente **somente leitura/validação** (GETs e
-  um POST inválido que nunca chega a tocar no banco), pra não sujar dados da turma. Rodar
-  `dotnet test` exige a mesma rede/VPN da FIAP usada pelo `dotnet run`.
+  endpoints reais da API. Como o projeto não tem um provider in-memory para o EF Core (só
+  `Oracle.EntityFrameworkCore`), esses testes rodam contra o **Oracle real da FIAP** — rodar
+  `dotnet test` exige a mesma rede/VPN da FIAP usada pelo `dotnet run`. Inclui:
+  - Um teste por controller (`Clinicas`, `Consultas`, `Pets`, `Tutores`, `AlertasSaude`,
+    `ScoresSaude`, `Dashboard`) cobrindo o caminho feliz autenticado;
+  - `AuthorizationTests` — os três cenários de autenticação exigidos: sem token (`401`),
+    token malformado/expirado (`401`) e token válido com role sem permissão (`403`), além do
+    caminho autorizado (`200`) e da confirmação de que `/health/live` continua público;
+  - `HealthCheckTests` — cobre `/health`, `/health/live` e `/health/ready` separadamente,
+    checando o `status` real (`Healthy`), não só "respondeu alguma coisa";
+  - `Clinica_CriarConsultarAtualizarExcluir_FluxoCompletoPersisteNoOracle` (em
+    `ClinicasControllerTests`) — fluxo de ponta a ponta real (create → get → update → get →
+    delete → get), conferindo o corpo de cada resposta e que a mudança realmente persistiu no
+    Oracle entre uma chamada HTTP e a seguinte (não só que o Create "parece" certo). A clínica
+    de teste usa um CNPJ gerado por timestamp e é sempre excluída no fim (inclusive se um assert
+    falhar no meio), pra não deixar lixo na base compartilhada da turma. O mesmo padrão
+    (criar → usar o id → excluir no `finally`) é usado em `DashboardControllerTests`, que antes
+    dependia de uma clínica de id fixo já existente na base.
+
+  Testes que exigem autenticação usam `factory.CreateAuthenticatedClient(role: "CLINICA")` —
+  gera um JWT assinado com a mesma chave de teste que a API valida por padrão
+  (`PetCareHub.API/Keys/public_key.pem`), sem precisar de um login real contra o Java.
 
 ---
 
