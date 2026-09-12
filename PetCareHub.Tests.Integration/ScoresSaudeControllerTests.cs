@@ -6,7 +6,7 @@ public class ScoresSaudeControllerTests(PetCareHubApiFactory factory)
     private readonly HttpClient _client = factory.CreateAuthenticatedClient();
 
     [Fact]
-    public async Task GetScoresSaude_RetornaStatusOkEJson()
+    public async Task GetScoresSaude_SemFiltro_RetornaStatusOkEJson()
     {
         // Arrange — client já configurado no construtor
 

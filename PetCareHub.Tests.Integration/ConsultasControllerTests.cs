@@ -9,7 +9,7 @@ public class ConsultasControllerTests(PetCareHubApiFactory factory)
     private readonly HttpClient _client = factory.CreateAuthenticatedClient();
 
     [Fact]
-    public async Task GetConsultas_RetornaStatusOkEJson()
+    public async Task GetConsultas_SemFiltro_RetornaStatusOkEJson()
     {
         // Arrange — client já configurado no construtor
 

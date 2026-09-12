@@ -8,7 +8,7 @@ public class HealthCheckTests(PetCareHubApiFactory factory)
     private readonly HttpClient _client = factory.CreateClient();
 
     [Fact]
-    public async Task GetHealthLive_SempreRetornaHealthy()
+    public async Task GetHealthLive_ProcessoAtivo_RetornaHealthy()
     {
         // /health/live só verifica o próprio processo (nenhuma dependência externa), então
         // — diferente do endpoint combinado — não há cenário legítimo em que deva falhar
