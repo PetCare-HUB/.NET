@@ -5,7 +5,7 @@ namespace PetCareHub.Tests.Integration;
 [Collection("PetCareHub API collection")]
 public class TutoresControllerTests(PetCareHubApiFactory factory)
 {
-    private readonly HttpClient _client = factory.CreateClient();
+    private readonly HttpClient _client = factory.CreateAuthenticatedClient();
 
     [Fact]
     public async Task GetTutores_RetornaStatusOkEJson()

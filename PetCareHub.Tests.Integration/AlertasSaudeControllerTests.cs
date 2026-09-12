@@ -3,7 +3,7 @@ namespace PetCareHub.Tests.Integration;
 [Collection("PetCareHub API collection")]
 public class AlertasSaudeControllerTests(PetCareHubApiFactory factory)
 {
-    private readonly HttpClient _client = factory.CreateClient();
+    private readonly HttpClient _client = factory.CreateAuthenticatedClient();
 
     [Fact]
     public async Task GetAlertasSaude_RetornaStatusOkEJson()
