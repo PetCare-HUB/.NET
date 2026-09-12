@@ -138,8 +138,8 @@ PetCareHub
 │       ├── Interfaces
 │       └── Implementations
 │
-├── PetCareHub.Domain              ← Entidades de domínio (puras)
-│   └── Entities
+├── PetCareHub.Domain              ← Entidades de domínio, com as regras que dependem só
+│   └── Entities                     do próprio estado da entidade (ex.: AlertaSaude.Resolver())
 │
 ├── PetCareHub.Infrastructure      ← Persistência (EF Core + Oracle)
 │   └── Persistence
@@ -148,8 +148,9 @@ PetCareHub
 │       ├── PetCareHubContext.cs
 │       └── Repository.cs          ← Repositório genérico
 │
-├── PetCareHub.Tests.Unit          ← Testes unitários dos Services (Moq, padrão AAA)
-│   └── Services
+├── PetCareHub.Tests.Unit          ← Testes unitários (Moq, padrão AAA)
+│   ├── Domain                     ← Entidades, sem mock nenhum (Resolver, GarantirQuePodeSerExcluida)
+│   └── Services                   ← Orquestração dos Services (repositório mockado)
 │
 └── PetCareHub.Tests.Integration   ← Testes de integração via WebApplicationFactory
 ```
@@ -208,6 +209,15 @@ Com o seguinte conteúdo:
   }
 }
 ```
+
+`appsettings.Development.json` está no `.gitignore` — nunca foi (e não deve ser) commitado.
+
+> **Importante para quem for entregar/empacotar este projeto:** gere o ZIP de entrega a
+> partir do GitHub (botão **Code → Download ZIP** no repositório, ou um `git clone` limpo em
+> outra pasta), nunca compactando a pasta local do seu computador direto. A pasta local tem
+> `appsettings.Development.json` com a senha real do Oracle, além de `bin/`, `obj/`, `logs/`
+> e configurações de IDE (`.idea/`, `.vs/`) — nenhum desses vai pro Git, mas todos vão junto
+> se você simplesmente compactar a pasta como está no seu PC.
 
 ---
 
@@ -603,13 +613,18 @@ nomenclatura `MetodoTestado_Cenario_ResultadoEsperado`, dividido em dois projeto
 dotnet test
 ```
 
-- **`PetCareHub.Tests.Unit`**: testes unitários dos `Services` (`ClinicaService`,
-  `ConsultaService`, `AlertaSaudeService`, `PetService`, `TutorService`) — são, na prática, os
-  testes de regra de negócio do projeto: as entidades em `PetCareHub.Domain` são POCOs sem
-  comportamento próprio, então é aqui que ficam as regras reais (CNPJ duplicado ao criar/atualizar
-  clínica, não deletar clínica com pets vinculados, não resolver um alerta já resolvido, não criar
-  consulta/alerta para pet ou clínica inexistente). Repositórios mockados via
-  [Moq](https://github.com/devlooped/moq), cobrindo caso feliz e caso de erro de cada regra.
+- **`PetCareHub.Tests.Unit`**, dividido em dois níveis:
+  - **`Domain`**: testa a regra de negócio direto na entidade, **sem repositório nem mock
+    nenhum** — `AlertaSaude.Resolver()` (lança exceção se já estiver resolvido) e
+    `Clinica.GarantirQuePodeSerExcluida(bool)` (lança exceção se a clínica tiver pet
+    vinculado). São as duas regras que dependem só do próprio estado da entidade; o fato
+    externo que a regra precisa (ex.: "essa clínica tem pet vinculado?") é informado por quem
+    chama, mas quem decide o que fazer com esse fato é a entidade.
+  - **`Services`** (`ClinicaService`, `ConsultaService`, `AlertaSaudeService`, `PetService`,
+    `TutorService`): testa a orquestração — buscar no repositório, delegar a regra pra
+    entidade quando aplicável, validar coisas que só o repositório sabe (CNPJ duplicado,
+    pet/clínica inexistente), persistir. Repositórios mockados via
+    [Moq](https://github.com/devlooped/moq), cobrindo caso feliz e caso de erro de cada regra.
 - **`PetCareHub.Tests.Integration`**: testes de ponta a ponta via `WebApplicationFactory<Program>`
   (compartilhada entre as classes de teste através de `ICollectionFixture`), batendo nos
   endpoints reais da API. Como o projeto não tem um provider in-memory para o EF Core (só
