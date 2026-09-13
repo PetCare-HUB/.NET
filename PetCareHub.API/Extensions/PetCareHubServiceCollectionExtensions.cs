@@ -10,8 +10,10 @@ using PetCareHub.Infrastructure.Persistence.Repositories;
 
 namespace PetCareHub.API.Extensions;
 
+/// <summary>Métodos de extensão que registram os serviços da API no container de DI.</summary>
 public static class PetCareHubServiceCollectionExtensions
 {
+    /// <summary>Registra os repositórios (Infrastructure) usados pelos Services.</summary>
     public static IServiceCollection AddPetCareHubRepositories(
         this IServiceCollection services)
     {
@@ -24,6 +26,7 @@ public static class PetCareHubServiceCollectionExtensions
 
         return services;
     }
+    /// <summary>Registra os Services de aplicação (regras de negócio).</summary>
     public static IServiceCollection AddPetCareHubApplicationServices(
         this IServiceCollection services)
     {
@@ -36,6 +39,7 @@ public static class PetCareHubServiceCollectionExtensions
 
         return services;
     }
+    /// <summary>Registra o <see cref="PetCareHubContext"/> apontando pro Oracle configurado.</summary>
     public static IServiceCollection AddPetCareHubDbContext(
         this IServiceCollection services,
         IConfiguration configuration)

@@ -5,6 +5,8 @@ using PetCareHub.Application.Services.Interfaces;
 
 namespace PetCareHub.API.Controllers;
 
+/// <summary>Consulta pets vinculados à clínica (somente leitura — o cadastro é da API Java).</summary>
+/// <param name="petService">Serviço de aplicação injetado.</param>
 [Route("api/[controller]")]
 [ApiController]
 [Produces("application/json")]
@@ -12,6 +14,7 @@ namespace PetCareHub.API.Controllers;
 public class PetsController(IPetService petService) : ControllerBase
 {
 
+    /// <summary>Lista todos os pets.</summary>
     [HttpGet]
     [ProducesResponseType(typeof(IReadOnlyList<PetResponse>), StatusCodes.Status200OK)]
     public IActionResult GetAll()
@@ -20,6 +23,7 @@ public class PetsController(IPetService petService) : ControllerBase
         return Ok(pets);
     }
 
+    /// <summary>Busca um pet pelo id.</summary>
     [HttpGet("{id:long}")]
     [ProducesResponseType(typeof(PetResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -32,6 +36,7 @@ public class PetsController(IPetService petService) : ControllerBase
         return Ok(pet);
     }
 
+    /// <summary>Lista os pets vinculados a uma clínica.</summary>
     [HttpGet("clinica/{clinicaId:long}")]
     [ProducesResponseType(typeof(IReadOnlyList<PetResponse>), StatusCodes.Status200OK)]
     public IActionResult GetByClinica(long clinicaId)

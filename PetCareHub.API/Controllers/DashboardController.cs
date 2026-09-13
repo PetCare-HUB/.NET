@@ -5,6 +5,7 @@ using PetCareHub.Infrastructure.Persistence;
 
 namespace PetCareHub.API.Controllers;
 
+/// <summary>Indicadores agregados do dashboard clínico — score médio, alertas, pets em risco.</summary>
 [ApiController]
 [Route("api/[controller]")]
 [Authorize(Roles = "CLINICA")]
@@ -12,11 +13,13 @@ public class DashboardController : ControllerBase
 {
     private readonly PetCareHubContext _context;
 
+    /// <summary>Cria o controller com o contexto EF Core injetado.</summary>
     public DashboardController(PetCareHubContext context)
     {
         _context = context;
     }
 
+    /// <summary>Resumo geral da clínica: contagens, score médio e pets em risco.</summary>
     [HttpGet("clinicas/{clinicaId:long}")]
     public async Task<IActionResult> GetResumoClinica(long clinicaId)
     {
@@ -92,6 +95,7 @@ public class DashboardController : ControllerBase
         });
     }
 
+    /// <summary>Lista os pets com score de saúde na categoria VERMELHO (em risco).</summary>
     [HttpGet("clinicas/{clinicaId:long}/pets-em-risco")]
     public async Task<IActionResult> GetPetsEmRisco(long clinicaId)
     {
@@ -126,6 +130,7 @@ public class DashboardController : ControllerBase
         return Ok(petsEmRisco);
     }
 
+    /// <summary>Lista os alertas de saúde ainda não resolvidos dos pets da clínica.</summary>
     [HttpGet("clinicas/{clinicaId:long}/alertas-abertos")]
     public async Task<IActionResult> GetAlertasAbertos(long clinicaId)
     {
@@ -162,6 +167,7 @@ public class DashboardController : ControllerBase
         return Ok(alertas);
     }
 
+    /// <summary>Lista as 10 consultas mais recentes da clínica.</summary>
     [HttpGet("clinicas/{clinicaId:long}/consultas-recentes")]
     public async Task<IActionResult> GetConsultasRecentes(long clinicaId)
     {
@@ -200,6 +206,7 @@ public class DashboardController : ControllerBase
         return Ok(consultas);
     }
 
+    /// <summary>Lista os eventos preventivos com status PENDENTE dos pets da clínica.</summary>
     [HttpGet("clinicas/{clinicaId:long}/eventos-pendentes")]
     public async Task<IActionResult> GetEventosPendentes(long clinicaId)
     {

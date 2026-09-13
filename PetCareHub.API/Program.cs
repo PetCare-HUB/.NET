@@ -17,8 +17,10 @@ using Serilog.Events;
 
 namespace PetCareHub.API;
 
+/// <summary>Ponto de entrada da API — configura DI, autenticação, observabilidade e o pipeline HTTP.</summary>
 public class Program
 {
+    /// <summary>Monta o host e inicia a aplicação.</summary>
     public static void Main(string[] args)
     {
         var builder = WebApplication.CreateBuilder(args);

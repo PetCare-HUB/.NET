@@ -5,6 +5,8 @@ using PetCareHub.Application.Services.Interfaces;
 
 namespace PetCareHub.API.Controllers;
 
+/// <summary>Consulta tutores (somente leitura — cadastrados/ativados pela API Java).</summary>
+/// <param name="tutorService">Serviço de aplicação injetado.</param>
 [Route("api/[controller]")]
 [ApiController]
 [Produces("application/json")]
@@ -12,6 +14,7 @@ namespace PetCareHub.API.Controllers;
 public class TutoresController(ITutorService tutorService) : ControllerBase
 {
 
+    /// <summary>Lista todos os tutores.</summary>
     [HttpGet]
     [ProducesResponseType(typeof(IReadOnlyList<TutorResponse>), StatusCodes.Status200OK)]
     public IActionResult GetAll()
@@ -20,6 +23,7 @@ public class TutoresController(ITutorService tutorService) : ControllerBase
         return Ok(tutores);
     }
 
+    /// <summary>Busca um tutor pelo id.</summary>
     [HttpGet("{id:long}")]
     [ProducesResponseType(typeof(TutorResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -32,6 +36,7 @@ public class TutoresController(ITutorService tutorService) : ControllerBase
         return Ok(tutor);
     }
 
+    /// <summary>Lista os tutores que têm pelo menos um pet vinculado à clínica.</summary>
     [HttpGet("clinica/{clinicaId:long}")]
     [ProducesResponseType(typeof(IReadOnlyList<TutorResponse>), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]

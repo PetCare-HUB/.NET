@@ -5,6 +5,8 @@ using PetCareHub.Application.Services.Interfaces;
 
 namespace PetCareHub.API.Controllers;
 
+/// <summary>Gerencia alertas de saúde dos pets — CRUD completo, exclusivo da clínica.</summary>
+/// <param name="alertaService">Serviço de aplicação injetado.</param>
 [Route("api/[controller]")]
 [ApiController]
 [Produces("application/json")]
@@ -12,6 +14,7 @@ namespace PetCareHub.API.Controllers;
 public class AlertasSaudeController(IAlertaSaudeService alertaService) : ControllerBase
 {
 
+    /// <summary>Lista alertas de saúde, com filtros opcionais por pet, nível e situação.</summary>
     [HttpGet]
     [ProducesResponseType(typeof(IReadOnlyList<AlertaSaudeResponse>), StatusCodes.Status200OK)]
     public IActionResult GetAll(
@@ -29,6 +32,7 @@ public class AlertasSaudeController(IAlertaSaudeService alertaService) : Control
         return Ok(alertas);
     }
 
+    /// <summary>Busca um alerta pelo id.</summary>
     [HttpGet("{id:long}")]
     [ProducesResponseType(typeof(AlertaSaudeResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -41,6 +45,7 @@ public class AlertasSaudeController(IAlertaSaudeService alertaService) : Control
         return Ok(alerta);
     }
 
+    /// <summary>Lista os alertas de um pet específico.</summary>
     [HttpGet("pet/{petId:long}")]
     [ProducesResponseType(typeof(IReadOnlyList<AlertaSaudeResponse>), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -57,6 +62,7 @@ public class AlertasSaudeController(IAlertaSaudeService alertaService) : Control
         }
     }
 
+    /// <summary>Lista os alertas dos pets vinculados a uma clínica.</summary>
     [HttpGet("clinica/{clinicaId:long}")]
     [ProducesResponseType(typeof(IReadOnlyList<AlertaSaudeResponse>), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -73,6 +79,7 @@ public class AlertasSaudeController(IAlertaSaudeService alertaService) : Control
         }
     }
 
+    /// <summary>Cria um novo alerta de saúde para um pet.</summary>
     [HttpPost]
     [ProducesResponseType(typeof(AlertaSaudeResponse), StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -92,6 +99,7 @@ public class AlertasSaudeController(IAlertaSaudeService alertaService) : Control
         }
     }
 
+    /// <summary>Atualiza os dados de um alerta existente.</summary>
     [HttpPut("{id:long}")]
     [ProducesResponseType(typeof(AlertaSaudeResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -115,6 +123,7 @@ public class AlertasSaudeController(IAlertaSaudeService alertaService) : Control
         }
     }
 
+    /// <summary>Remove um alerta de saúde.</summary>
     [HttpDelete("{id:long}")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -127,6 +136,7 @@ public class AlertasSaudeController(IAlertaSaudeService alertaService) : Control
         return NoContent();
     }
 
+    /// <summary>Marca um alerta como resolvido. Falha com 400 se já estiver resolvido.</summary>
     [HttpPut("{id:long}/resolver")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]

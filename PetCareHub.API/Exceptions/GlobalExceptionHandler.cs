@@ -3,10 +3,14 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace PetCareHub.API.Exceptions;
 
+/// <summary>Converte qualquer exceção não tratada num <see cref="ProblemDetails"/> (RFC 7807).</summary>
+/// <param name="logger">Logger injetado.</param>
+/// <param name="environment">Ambiente de hospedagem — decide se inclui o traceId na resposta.</param>
 public sealed class GlobalExceptionHandler(
     ILogger<GlobalExceptionHandler> logger,
     IHostEnvironment environment) : IExceptionHandler
 {
+    /// <summary>Mapeia a exceção para um status HTTP e escreve o corpo da resposta.</summary>
     public async ValueTask<bool> TryHandleAsync(
         HttpContext httpContext,
         Exception exception,

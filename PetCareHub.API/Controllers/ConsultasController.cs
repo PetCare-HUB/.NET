@@ -5,6 +5,8 @@ using PetCareHub.Application.Services.Interfaces;
 
 namespace PetCareHub.API.Controllers;
 
+/// <summary>Gerencia consultas veterinárias — CRUD completo.</summary>
+/// <param name="consultaService">Serviço de aplicação injetado.</param>
 [Route("api/[controller]")]
 [ApiController]
 [Produces("application/json")]
@@ -12,6 +14,7 @@ namespace PetCareHub.API.Controllers;
 public class ConsultasController(IConsultaService consultaService) : ControllerBase
 {
 
+    /// <summary>Lista consultas, com filtros opcionais por clínica, pet, tipo e retorno.</summary>
     [HttpGet]
     [ProducesResponseType(typeof(IReadOnlyList<ConsultaResponse>), StatusCodes.Status200OK)]
     public IActionResult GetAll(
@@ -30,6 +33,7 @@ public class ConsultasController(IConsultaService consultaService) : ControllerB
         return Ok(consultas);
     }
 
+    /// <summary>Busca uma consulta pelo id.</summary>
     [HttpGet("{id:long}")]
     [ProducesResponseType(typeof(ConsultaResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -42,6 +46,7 @@ public class ConsultasController(IConsultaService consultaService) : ControllerB
         return Ok(consulta);
     }
 
+    /// <summary>Lista as consultas de uma clínica.</summary>
     [HttpGet("clinica/{clinicaId:long}")]
     [ProducesResponseType(typeof(IReadOnlyList<ConsultaResponse>), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -58,6 +63,7 @@ public class ConsultasController(IConsultaService consultaService) : ControllerB
         }
     }
 
+    /// <summary>Lista as consultas de um pet.</summary>
     [HttpGet("pet/{petId:long}")]
     [ProducesResponseType(typeof(IReadOnlyList<ConsultaResponse>), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -74,6 +80,7 @@ public class ConsultasController(IConsultaService consultaService) : ControllerB
         }
     }
 
+    /// <summary>Cria uma nova consulta para um pet.</summary>
     [HttpPost]
     [ProducesResponseType(typeof(ConsultaResponse), StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -93,6 +100,7 @@ public class ConsultasController(IConsultaService consultaService) : ControllerB
         }
     }
 
+    /// <summary>Atualiza os dados de uma consulta existente.</summary>
     [HttpPut("{id:long}")]
     [ProducesResponseType(typeof(ConsultaResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -116,6 +124,7 @@ public class ConsultasController(IConsultaService consultaService) : ControllerB
         }
     }
 
+    /// <summary>Remove uma consulta.</summary>
     [HttpDelete("{id:long}")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]

@@ -3,8 +3,10 @@ using Microsoft.Extensions.Diagnostics.HealthChecks;
 
 namespace PetCareHub.API.Health;
 
+/// <summary>Formata a resposta dos endpoints de health check em JSON.</summary>
 public static class HealthCheckResponseWriter
 {
+    /// <summary>Escreve o <see cref="HealthReport"/> como JSON no corpo da resposta.</summary>
     public static Task WriteJsonResponse(HttpContext context, HealthReport report)
     {
         context.Response.ContentType = "application/json";

@@ -5,6 +5,8 @@ using PetCareHub.Application.Services.Interfaces;
 
 namespace PetCareHub.API.Controllers;
 
+/// <summary>Consulta scores de saúde (somente leitura — calculados pela API Java).</summary>
+/// <param name="scoreSaudeService">Serviço de aplicação injetado.</param>
 [Route("api/[controller]")]
 [ApiController]
 [Produces("application/json")]
@@ -12,6 +14,7 @@ namespace PetCareHub.API.Controllers;
 public class ScoresSaudeController(IScoreSaudeService scoreSaudeService) : ControllerBase
 {
 
+    /// <summary>Lista scores de saúde, com filtros opcionais por pet, clínica, categoria e faixa.</summary>
     [HttpGet]
     [ProducesResponseType(typeof(IReadOnlyList<ScoreSaudeResponse>), StatusCodes.Status200OK)]
     public IActionResult GetAll(
@@ -32,6 +35,7 @@ public class ScoresSaudeController(IScoreSaudeService scoreSaudeService) : Contr
         return Ok(scores);
     }
 
+    /// <summary>Busca um score pelo id.</summary>
     [HttpGet("{id:long}")]
     [ProducesResponseType(typeof(ScoreSaudeResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -44,6 +48,7 @@ public class ScoresSaudeController(IScoreSaudeService scoreSaudeService) : Contr
         return Ok(score);
     }
 
+    /// <summary>Histórico de scores de saúde de um pet.</summary>
     [HttpGet("pet/{petId:long}")]
     [ProducesResponseType(typeof(IReadOnlyList<ScoreSaudeResponse>), StatusCodes.Status200OK)]
     public IActionResult GetByPet(long petId)
@@ -52,6 +57,7 @@ public class ScoresSaudeController(IScoreSaudeService scoreSaudeService) : Contr
         return Ok(scores);
     }
 
+    /// <summary>Score de saúde mais recente de um pet.</summary>
     [HttpGet("pet/{petId:long}/atual")]
     [ProducesResponseType(typeof(ScoreSaudeResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -64,6 +70,7 @@ public class ScoresSaudeController(IScoreSaudeService scoreSaudeService) : Contr
         return Ok(score);
     }
 
+    /// <summary>Scores de saúde de todos os pets de uma clínica.</summary>
     [HttpGet("clinica/{clinicaId:long}")]
     [ProducesResponseType(typeof(IReadOnlyList<ScoreSaudeResponse>), StatusCodes.Status200OK)]
     public IActionResult GetByClinica(long clinicaId)
