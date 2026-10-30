@@ -9,7 +9,7 @@ public sealed class ClinicaRepository(PetCareHubContext context)
 {
     // FIX bug Oracle EF Core 9.23 — não usar .Any()
     public bool ExistsByCnpj(string cnpj) =>
-        _context.Clinicas.Count(c => c.Cnpj == cnpj) > 0;
+        _context.Clinicas.IgnoreQueryFilters().Count(c => c.Cnpj == cnpj) > 0;
 
     public Clinica? GetByCnpj(string cnpj) =>
         _context.Clinicas

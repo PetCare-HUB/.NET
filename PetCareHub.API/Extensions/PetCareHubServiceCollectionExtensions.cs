@@ -2,9 +2,14 @@
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
+using MongoDB.Bson;
+using MongoDB.Bson.Serialization;
+using MongoDB.Bson.Serialization.Serializers;
+using MongoDB.Driver;
 using PetCareHub.Application.Repositories;
 using PetCareHub.Application.Services.Implementations;
 using PetCareHub.Application.Services.Interfaces;
+using PetCareHub.API.Services;
 using PetCareHub.Infrastructure.Persistence;
 using PetCareHub.Infrastructure.Persistence.Repositories;
 
@@ -23,6 +28,8 @@ public static class PetCareHubServiceCollectionExtensions
         services.AddScoped<IPetRepository, PetRepository>();
         services.AddScoped<IClinicaRepository, ClinicaRepository>();
         services.AddScoped<IScoreSaudeRepository, ScoreSaudeRepository>();
+        services.AddScoped<IPetIotSummarySource, PetIotSummarySource>();
+        services.AddScoped<IResumoPetRepository, ResumoPetMongoRepository>();
 
         return services;
     }
@@ -36,6 +43,8 @@ public static class PetCareHubServiceCollectionExtensions
         services.AddScoped<IPetService, PetService>();
         services.AddScoped<IClinicaService, ClinicaService>();
         services.AddScoped<IScoreSaudeService, ScoreSaudeService>();
+        services.AddScoped<IResumoPetService, ResumoPetService>();
+        services.AddScoped<ICurrentClinicContext, HttpCurrentClinicContext>();
 
         return services;
     }
@@ -50,6 +59,22 @@ public static class PetCareHubServiceCollectionExtensions
 
         services.AddDbContext<PetCareHubContext>(options =>
             options.UseOracle(connectionString));
+
+        return services;
+    }
+
+    /// <summary>Registra a conexão com MongoDB usada para os documentos de contexto da IA.</summary>
+    public static IServiceCollection AddPetCareHubMongo(
+        this IServiceCollection services,
+        IConfiguration configuration)
+    {
+        var connectionString = configuration.GetConnectionString("Mongo")
+            ?? "mongodb://localhost:27017";
+        var databaseName = configuration["Mongo:Database"] ?? "petcarehub";
+
+        BsonSerializer.TryRegisterSerializer(new GuidSerializer(GuidRepresentation.Standard));
+        services.AddSingleton<IMongoClient>(_ => new MongoClient(connectionString));
+        services.AddSingleton(sp => sp.GetRequiredService<IMongoClient>().GetDatabase(databaseName));
 
         return services;
     }

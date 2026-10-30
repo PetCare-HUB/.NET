@@ -41,6 +41,7 @@ public class Program
         builder.Services.AddHttpContextAccessor();
 
         builder.Services.AddPetCareHubDbContext(builder.Configuration);
+        builder.Services.AddPetCareHubMongo(builder.Configuration);
 
         builder.Services.AddPetCareHubRepositories();
 
@@ -82,7 +83,12 @@ public class Program
                 builder.Configuration.GetConnectionString("DefaultConnection")!,
                 name: "oracle-db",
                 failureStatus: HealthStatus.Unhealthy,
-                tags: new[] { "ready", "db", "oracle" });
+                tags: new[] { "ready", "db", "oracle" })
+            .AddMongoDb(
+                databaseNameFactory: _ => builder.Configuration["Mongo:Database"] ?? "petcarehub",
+                name: "mongodb",
+                timeout: TimeSpan.FromSeconds(5),
+                tags: new[] { "ready", "db", "mongodb" });
 
         builder.Services.AddSwaggerGen(options =>
         {
