@@ -77,8 +77,10 @@ public class Program
                 "self",
                 () => HealthCheckResult.Healthy("API em execução."),
                 tags: new[] { "live" })
-            // Readiness: a única dependência externa que o .NET realmente chama é o
-            // Oracle (nenhuma outra API/fila/serviço terceiro é consumida por esta API).
+            // Readiness: as duas dependências externas que esta API realmente chama —
+            // o Oracle, de onde vem todo o dado relacional, e o MongoDB, onde ficam os
+            // resumos de contexto da IA. Nenhuma outra API ou fila de terceiro é
+            // consumida aqui, então não há mais nada a checar neste grupo.
             .AddOracle(
                 builder.Configuration.GetConnectionString("DefaultConnection")!,
                 name: "oracle-db",
