@@ -158,6 +158,59 @@ PetCareHub
 
 ---
 
+## Diagrama da Solução
+
+Onde esta API se encaixa no PetCare Hub. O produto tem **duas APIs com responsabilidades
+separadas sobre o mesmo banco**: a API Java é dona da autenticação, da ingestão das leituras
+IoT e do cálculo do score; esta API .NET é dona do **dashboard clínico** — a leitura
+consolidada que a clínica usa no dia a dia.
+
+```mermaid
+flowchart TB
+    subgraph clientes["Clientes"]
+        MOB["App Mobile<br/>(Expo / React Native)<br/>uso do tutor"]
+        DASH["Dashboard Clínico<br/>uso da clínica"]
+    end
+
+    subgraph iot["Dispositivos IoT"]
+        COL["Coleira inteligente<br/>atividade + bateria"]
+        COM["Comedouro inteligente<br/>ração + consumo"]
+        AMB["Sensor de ambiente<br/>temperatura + ar"]
+    end
+
+    subgraph apis["Aplicação"]
+        JAVA["API Java (Spring Boot)<br/>auth JWT · ingestão IoT · score · alertas"]
+        NET["API .NET (esta)<br/>dashboard · consultas · indicadores"]
+    end
+
+    subgraph dados["Persistência"]
+        ORA[("Oracle 19c<br/>schema relacional compartilhado<br/>+ procedures PL/SQL")]
+        MGO[("MongoDB<br/>resumos para contexto de IA")]
+    end
+
+    COL --> JAVA
+    COM --> JAVA
+    AMB --> JAVA
+    MOB --> JAVA
+    DASH --> NET
+
+    JAVA -->|"JPA + chamada das procedures"| ORA
+    NET -->|"EF Core (Fluent API, sem migration própria)"| ORA
+    NET -->|"driver oficial"| MGO
+
+    NET -.->|"valida o JWT com a chave pública<br/>emitida pelo Java"| JAVA
+```
+
+Três decisões que o diagrama torna explícitas:
+
+| Decisão | Por quê |
+|---|---|
+| **O Flyway do Java é o único dono do schema** | Duas ferramentas de migration no mesmo banco acabam em conflito — uma coluna renomeada de um lado que o outro não sabe. O .NET só mapeia via Fluent API. |
+| **O .NET não emite token, só valida** | Existe um único emissor de identidade no produto (o Java). O .NET lê a chave pública RS256 e confia na assinatura — não há um segundo cadastro de usuário para manter em sincronia. |
+| **MongoDB só aqui** | Os resumos de pet para contexto de IA são documentos, não linhas: formato variável e lidos inteiros, nunca por campo. Forçá-los no relacional significaria tabela com coluna CLOB e nenhuma consulta aproveitável. |
+
+---
+
 ## Banco de Dados
 
 A API utiliza o **mesmo schema Oracle que a API Java** (fonte de verdade compartilhada da disciplina de Database). O schema é gerenciado exclusivamente pelo **Flyway do Java** — o .NET nunca roda migration própria contra ele, só mapeia as tabelas já existentes via Fluent API.
@@ -296,6 +349,103 @@ nas classes de `Configurations`, nunca em uma migration.
 
 ---
 
+## Paginação, Ordenação e Filtros
+
+Nenhuma listagem devolve a tabela inteira. Todos os `GET` de coleção aceitam os mesmos quatro
+parâmetros de query, ligados ao record `PageQuery`:
+
+| Parâmetro | Padrão | Observação |
+|---|---|---|
+| `page` | `0` | Base **zero**. Valor negativo é corrigido para `0`. |
+| `size` | `10` | Entre `1` e `100`. Pedido maior é cortado no teto, para um cliente não conseguir pedir a tabela toda. |
+| `sort` | `Id` | Nome da propriedade do DTO. Nome desconhecido cai para `Id` em vez de dar erro. |
+| `dir` | `asc` | `asc` ou `desc`. |
+
+```http
+GET /api/Consultas?page=0&size=20&sort=DataConsulta&dir=desc
+```
+
+O envelope da resposta é o mesmo em todas as listagens:
+
+```json
+{
+  "content": [ { "id": 12, "...": "..." } ],
+  "page": 0,
+  "size": 20,
+  "totalElements": 134,
+  "totalPages": 7,
+  "first": true,
+  "last": false,
+  "_links": [ "..." ]
+}
+```
+
+> **Esse contrato é propositalmente idêntico ao da API Java.** Os nomes dos campos e a base zero
+> espelham o `Pageable`/`PageResponse` do Spring, para o app mobile e o dashboard não precisarem
+> de dois tratamentos de paginação diferentes dependendo de qual API responderam.
+
+### Filtros por endpoint
+
+Combinam com a paginação na mesma chamada. Todos são opcionais:
+
+| Endpoint | Filtros |
+|---|---|
+| `GET /api/Consultas` | `clinicaId`, `petId`, `tipoConsulta`, `retornoRecomendado` |
+| `GET /api/AlertasSaude` | `petId`, `nivelAlerta`, `resolvido` |
+| `GET /api/ScoresSaude` | `petId`, `clinicaId`, `categoria`, `scoreMin`, `scoreMax` |
+| `GET /api/Clinicas`, `/api/Pets`, `/api/Tutores` | só paginação e ordenação |
+
+Sem filtro, o recorte da página acontece **no banco** (`Skip`/`Take` traduzidos para SQL). Com
+filtro, ele acontece sobre a lista já restrita — o que é aceitável porque o query filter global
+do EF Core limita o conjunto à clínica do token **antes** de chegar na paginação. Se o volume por
+clínica crescer, o caminho é levar os filtros para dentro do `GetPaged`.
+
+---
+
+## HATEOAS
+
+As respostas de consulta carregam `_links`, para o cliente navegar pelo que a API oferece em vez
+de montar URL por concatenação de string.
+
+**Nas listagens**, os links são a navegação da coleção — e **preservam os filtros da query
+string atual**, porque paginar não pode fazer o cliente perder o filtro que ele aplicou:
+
+```json
+"_links": [
+  { "rel": "self",  "href": "https://host/api/Consultas?petId=3&page=1&size=20", "method": "GET" },
+  { "rel": "first", "href": "https://host/api/Consultas?petId=3&page=0&size=20", "method": "GET" },
+  { "rel": "prev",  "href": "https://host/api/Consultas?petId=3&page=0&size=20", "method": "GET" },
+  { "rel": "next",  "href": "https://host/api/Consultas?petId=3&page=2&size=20", "method": "GET" },
+  { "rel": "last",  "href": "https://host/api/Consultas?petId=3&page=6&size=20", "method": "GET" }
+]
+```
+
+`prev` só aparece quando não é a primeira página, e `next` só quando não é a última — a ausência
+do link é a informação.
+
+**No recurso único**, os links dizem o que dá para fazer com ele a partir dali:
+
+```json
+{
+  "data": { "id": 12, "...": "..." },
+  "_links": [
+    { "rel": "self",       "href": "https://host/api/Consultas/12", "method": "GET" },
+    { "rel": "collection", "href": "https://host/api/Consultas",    "method": "GET" },
+    { "rel": "update",     "href": "https://host/api/Consultas/12", "method": "PUT" },
+    { "rel": "delete",     "href": "https://host/api/Consultas/12", "method": "DELETE" }
+  ]
+}
+```
+
+Dois cuidados na implementação:
+
+- **Pets, Tutores e Scores não anunciam `update`/`delete`.** O cadastro desses três é da API Java;
+  oferecer o link aqui seria anunciar uma ação que responderia `405`.
+- **As URLs saem do próprio request** (esquema, host e `PathBase`), não de configuração. Assim
+  continuam corretas atrás do proxy do Render sem URL base fixada em lugar nenhum.
+
+---
+
 ## Endpoints Disponíveis
 
 Todos os endpoints seguem o padrão REST e estão documentados no Swagger.
@@ -308,7 +458,7 @@ Todos os endpoints seguem o padrão REST e estão documentados no Swagger.
 
 | Método | Rota | Descrição |
 |---|---|---|
-| `GET`    | `/api/Clinicas`              | Lista todas as clínicas |
+| `GET`    | `/api/Clinicas`              | Lista as clínicas (paginado — ver [Paginação](#paginação-ordenação-e-filtros)) |
 | `GET`    | `/api/Clinicas/{id}`         | Busca uma clínica pelo ID |
 | `POST`   | `/api/Clinicas`              | Cria uma nova clínica |
 | `PUT`    | `/api/Clinicas/{id}`         | Atualiza uma clínica |
@@ -339,7 +489,7 @@ Todos os endpoints seguem o padrão REST e estão documentados no Swagger.
 
 | Método | Rota | Descrição |
 |---|---|---|
-| `GET` | `/api/Pets`                          | Lista todos os pets |
+| `GET` | `/api/Pets`                          | Lista os pets (paginado) |
 | `GET` | `/api/Pets/{id}`                     | Busca pet pelo ID |
 | `GET` | `/api/Pets/clinica/{clinicaId}`      | Lista pets vinculados a uma clínica |
 
@@ -457,7 +607,7 @@ GET /api/ScoresSaude?scoreMin=0&scoreMax=50
 
 | Método | Rota | Descrição |
 |---|---|---|
-| `GET` | `/api/Tutores`                       | Lista todos os tutores |
+| `GET` | `/api/Tutores`                       | Lista os tutores (paginado) |
 | `GET` | `/api/Tutores/{id}`                  | Busca tutor pelo ID |
 | `GET` | `/api/Tutores/clinica/{clinicaId}`   | Lista tutores com pets na clínica |
 
