@@ -9,7 +9,8 @@ public record ClinicaResponse(
     string? Email,
     string? Telefone,
     string? Endereco,
-    bool Ativo
+    bool Ativo,
+    string StatusAcesso
 )
 {
     public static ClinicaResponse FromDomain(Clinica clinica) =>
@@ -20,6 +21,7 @@ public record ClinicaResponse(
             clinica.Email,
             clinica.Telefone,
             clinica.Endereco,
-            clinica.Ativo
+            clinica.Ativo,
+            clinica.StatusAcesso
         );
 }

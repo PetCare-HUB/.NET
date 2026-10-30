@@ -1,9 +1,10 @@
-﻿using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging;
 using PetCareHub.Application.DTOs;
 using PetCareHub.Application.Diagnostics;
 using PetCareHub.Application.Repositories;
 using PetCareHub.Application.Services.Interfaces;
 using PetCareHub.Domain.Entities;
+using PetCareHub.Application.DTOs.Paging;
 
 namespace PetCareHub.Application.Services.Implementations;
 
@@ -13,12 +14,12 @@ public sealed class ConsultaService(
     IClinicaRepository clinicaRepository,
     ILogger<ConsultaService> logger) : IConsultaService
 {
-    public IReadOnlyList<ConsultaResponse> GetAll()
+    public PagedResponse<ConsultaResponse> GetAll(PageQuery consulta)
     {
-        return consultaRepository
-            .GetAll()
-            .Select(ConsultaResponse.FromDomain)
-            .ToList();
+        return PagedResponse<ConsultaResponse>.From(
+            consultaRepository.GetPaged(consulta),
+            consulta,
+            ConsultaResponse.FromDomain);
     }
 
     public IReadOnlyList<ConsultaResponse> GetFiltered(

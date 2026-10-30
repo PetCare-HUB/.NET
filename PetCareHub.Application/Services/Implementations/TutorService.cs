@@ -1,6 +1,7 @@
-﻿using PetCareHub.Application.DTOs;
+using PetCareHub.Application.DTOs;
 using PetCareHub.Application.Repositories;
 using PetCareHub.Application.Services.Interfaces;
+using PetCareHub.Application.DTOs.Paging;
 
 namespace PetCareHub.Application.Services.Implementations;
 
@@ -8,12 +9,12 @@ public sealed class TutorService(
     ITutorRepository tutorRepository,
     IClinicaRepository clinicaRepository) : ITutorService
 {
-    public IReadOnlyList<TutorResponse> GetAll()
+    public PagedResponse<TutorResponse> GetAll(PageQuery consulta)
     {
-        return tutorRepository
-            .GetAll()
-            .Select(TutorResponse.FromDomain)
-            .ToList();
+        return PagedResponse<TutorResponse>.From(
+            tutorRepository.GetPaged(consulta),
+            consulta,
+            TutorResponse.FromDomain);
     }
 
     public TutorResponse? GetById(long id)

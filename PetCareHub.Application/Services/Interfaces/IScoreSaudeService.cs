@@ -1,10 +1,11 @@
-﻿using PetCareHub.Application.DTOs;
+using PetCareHub.Application.DTOs;
+using PetCareHub.Application.DTOs.Paging;
 
 namespace PetCareHub.Application.Services.Interfaces;
 
 public interface IScoreSaudeService
 {
-    IReadOnlyList<ScoreSaudeResponse> GetAll();
+    PagedResponse<ScoreSaudeResponse> GetAll(PageQuery consulta);
 
     IReadOnlyList<ScoreSaudeResponse> GetFiltered(
         long? petId,

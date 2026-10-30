@@ -1,7 +1,10 @@
-﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using PetCareHub.Application.DTOs;
 using PetCareHub.Application.Services.Interfaces;
+using PetCareHub.API.Hateoas;
+using PetCareHub.Application.DTOs.Hateoas;
+using PetCareHub.Application.DTOs.Paging;
 
 namespace PetCareHub.API.Controllers;
 
@@ -16,26 +19,31 @@ public class ConsultasController(IConsultaService consultaService) : ControllerB
 
     /// <summary>Lista consultas, com filtros opcionais por clínica, pet, tipo e retorno.</summary>
     [HttpGet]
-    [ProducesResponseType(typeof(IReadOnlyList<ConsultaResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(PagedResponse<ConsultaResponse>), StatusCodes.Status200OK)]
     public IActionResult GetAll(
         [FromQuery] long? clinicaId,
         [FromQuery] long? petId,
         [FromQuery] string? tipoConsulta,
-        [FromQuery] bool? retornoRecomendado)
+        [FromQuery] bool? retornoRecomendado,
+        [FromQuery] PageQuery consulta)
     {
         var temFiltro = clinicaId.HasValue || petId.HasValue
             || !string.IsNullOrWhiteSpace(tipoConsulta) || retornoRecomendado.HasValue;
 
-        var consultas = temFiltro
-            ? consultaService.GetFiltered(clinicaId, petId, tipoConsulta, retornoRecomendado)
-            : consultaService.GetAll();
+        // Sem filtro a paginação acontece no banco; com filtro, sobre a lista
+        // já restrita pelo query filter da clínica (ver PagedResponse.FromList).
+        var pagina = temFiltro
+            ? PagedResponse<ConsultaResponse>.FromList(
+                consultaService.GetFiltered(clinicaId, petId, tipoConsulta, retornoRecomendado),
+                consulta)
+            : consultaService.GetAll(consulta);
 
-        return Ok(consultas);
+        return Ok(this.ComLinksDePagina(pagina));
     }
 
     /// <summary>Busca uma consulta pelo id.</summary>
     [HttpGet("{id:long}")]
-    [ProducesResponseType(typeof(ConsultaResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(Resource<ConsultaResponse>), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public IActionResult GetById(long id)
     {
@@ -43,7 +51,7 @@ public class ConsultasController(IConsultaService consultaService) : ControllerB
         if (consulta is null)
             return NotFound();
 
-        return Ok(consulta);
+        return Ok(this.ComoRecurso(consulta, id));
     }
 
     /// <summary>Lista as consultas de uma clínica.</summary>

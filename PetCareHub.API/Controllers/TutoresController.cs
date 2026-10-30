@@ -2,6 +2,9 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using PetCareHub.Application.DTOs;
 using PetCareHub.Application.Services.Interfaces;
+using PetCareHub.API.Hateoas;
+using PetCareHub.Application.DTOs.Hateoas;
+using PetCareHub.Application.DTOs.Paging;
 
 namespace PetCareHub.API.Controllers;
 
@@ -16,16 +19,15 @@ public class TutoresController(ITutorService tutorService) : ControllerBase
 
     /// <summary>Lista todos os tutores.</summary>
     [HttpGet]
-    [ProducesResponseType(typeof(IReadOnlyList<TutorResponse>), StatusCodes.Status200OK)]
-    public IActionResult GetAll()
+    [ProducesResponseType(typeof(PagedResponse<TutorResponse>), StatusCodes.Status200OK)]
+    public IActionResult GetAll([FromQuery] PageQuery consulta)
     {
-        var tutores = tutorService.GetAll();
-        return Ok(tutores);
+        return Ok(this.ComLinksDePagina(tutorService.GetAll(consulta)));
     }
 
     /// <summary>Busca um tutor pelo id.</summary>
     [HttpGet("{id:long}")]
-    [ProducesResponseType(typeof(TutorResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(Resource<TutorResponse>), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public IActionResult GetById(long id)
     {
@@ -33,7 +35,7 @@ public class TutoresController(ITutorService tutorService) : ControllerBase
         if (tutor is null)
             return NotFound();
 
-        return Ok(tutor);
+        return Ok(this.ComoRecurso(tutor, id, somenteLeitura: true));
     }
 
     /// <summary>Lista os tutores que têm pelo menos um pet vinculado à clínica.</summary>

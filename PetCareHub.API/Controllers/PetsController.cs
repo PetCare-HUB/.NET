@@ -1,7 +1,10 @@
-﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using PetCareHub.Application.DTOs;
 using PetCareHub.Application.Services.Interfaces;
+using PetCareHub.API.Hateoas;
+using PetCareHub.Application.DTOs.Hateoas;
+using PetCareHub.Application.DTOs.Paging;
 
 namespace PetCareHub.API.Controllers;
 
@@ -16,16 +19,15 @@ public class PetsController(IPetService petService) : ControllerBase
 
     /// <summary>Lista todos os pets.</summary>
     [HttpGet]
-    [ProducesResponseType(typeof(IReadOnlyList<PetResponse>), StatusCodes.Status200OK)]
-    public IActionResult GetAll()
+    [ProducesResponseType(typeof(PagedResponse<PetResponse>), StatusCodes.Status200OK)]
+    public IActionResult GetAll([FromQuery] PageQuery consulta)
     {
-        var pets = petService.GetAll();
-        return Ok(pets);
+        return Ok(this.ComLinksDePagina(petService.GetAll(consulta)));
     }
 
     /// <summary>Busca um pet pelo id.</summary>
     [HttpGet("{id:long}")]
-    [ProducesResponseType(typeof(PetResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(Resource<PetResponse>), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public IActionResult GetById(long id)
     {
@@ -33,7 +35,7 @@ public class PetsController(IPetService petService) : ControllerBase
         if (pet is null)
             return NotFound();
 
-        return Ok(pet);
+        return Ok(this.ComoRecurso(pet, id, somenteLeitura: true));
     }
 
     /// <summary>Lista os pets vinculados a uma clínica.</summary>

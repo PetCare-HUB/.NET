@@ -1,10 +1,11 @@
-﻿using PetCareHub.Application.DTOs;
+using PetCareHub.Application.DTOs;
+using PetCareHub.Application.DTOs.Paging;
 
 namespace PetCareHub.Application.Services.Interfaces;
 
 public interface ITutorService
 {
-    IReadOnlyList<TutorResponse> GetAll();
+    PagedResponse<TutorResponse> GetAll(PageQuery consulta);
 
     TutorResponse? GetById(long id);
 

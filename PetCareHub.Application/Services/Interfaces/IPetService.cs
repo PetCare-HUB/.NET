@@ -1,10 +1,11 @@
-﻿using PetCareHub.Application.DTOs;
+using PetCareHub.Application.DTOs;
+using PetCareHub.Application.DTOs.Paging;
 
 namespace PetCareHub.Application.Services.Interfaces;
 
 public interface IPetService
 {
-    IReadOnlyList<PetResponse> GetAll();
+    PagedResponse<PetResponse> GetAll(PageQuery consulta);
 
     IReadOnlyList<PetResponse> GetFiltered(long? clinicaId, string? especie, bool? ativo);
 

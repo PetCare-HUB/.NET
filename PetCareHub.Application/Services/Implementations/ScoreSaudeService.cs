@@ -1,17 +1,18 @@
-﻿using PetCareHub.Application.DTOs;
+using PetCareHub.Application.DTOs;
 using PetCareHub.Application.Repositories;
 using PetCareHub.Application.Services.Interfaces;
+using PetCareHub.Application.DTOs.Paging;
 
 namespace PetCareHub.Application.Services.Implementations;
 
 public sealed class ScoreSaudeService(IScoreSaudeRepository scoreSaudeRepository) : IScoreSaudeService
 {
-    public IReadOnlyList<ScoreSaudeResponse> GetAll()
+    public PagedResponse<ScoreSaudeResponse> GetAll(PageQuery consulta)
     {
-        return scoreSaudeRepository
-            .GetAll()
-            .Select(ScoreSaudeResponse.FromDomain)
-            .ToList();
+        return PagedResponse<ScoreSaudeResponse>.From(
+            scoreSaudeRepository.GetPaged(consulta),
+            consulta,
+            ScoreSaudeResponse.FromDomain);
     }
 
     public IReadOnlyList<ScoreSaudeResponse> GetFiltered(

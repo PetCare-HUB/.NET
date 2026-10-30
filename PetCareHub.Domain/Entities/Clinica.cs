@@ -16,6 +16,14 @@ public class Clinica
 
     public bool Ativo { get; set; } = true;
 
+    /// <summary>
+    /// Se a clínica já pode autenticar: PRE_CADASTRADO, ATIVO, BLOQUEADO ou
+    /// INATIVO. Quem muda este valor é a API Java, que é a dona do
+    /// credenciamento — aqui ele nasce PRE_CADASTRADO porque uma clínica
+    /// criada pelo dashboard ainda precisa ser aprovada por um admin.
+    /// </summary>
+    public string StatusAcesso { get; set; } = "PRE_CADASTRADO";
+
     public ICollection<Pet> Pets { get; set; } = new List<Pet>();
 
     public ICollection<Consulta> Consultas { get; set; } = new List<Consulta>();

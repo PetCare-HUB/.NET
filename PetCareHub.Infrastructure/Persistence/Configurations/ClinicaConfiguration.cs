@@ -27,9 +27,12 @@ public class ClinicaConfiguration : IEntityTypeConfiguration<Clinica>
             .HasMaxLength(14)
             .IsRequired();
 
+        // A V11 do Flyway alargou a coluna de 120 para 150 e criou UNIQUE nela:
+        // a autenticação do Java busca a clínica por e-mail, então dois
+        // registros com o mesmo valor deixavam o login ambíguo.
         builder.Property(c => c.Email)
             .HasColumnName("EMAIL")
-            .HasMaxLength(120);
+            .HasMaxLength(150);
 
         builder.Property(c => c.Telefone)
             .HasColumnName("TELEFONE")
@@ -46,6 +49,14 @@ public class ClinicaConfiguration : IEntityTypeConfiguration<Clinica>
                 valor => valor == "S"
             )
             .HasMaxLength(1)
+            .IsRequired();
+
+        // Quem pode autenticar, criado pela V11. Só a API Java escreve neste
+        // campo (é ela que aprova o credenciamento); o .NET lê para o
+        // dashboard saber quais clínicas ainda estão em análise.
+        builder.Property(c => c.StatusAcesso)
+            .HasColumnName("STATUS_ACESSO")
+            .HasMaxLength(20)
             .IsRequired();
 
         builder.HasIndex(c => c.Cnpj)

@@ -1,7 +1,10 @@
-﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using PetCareHub.Application.DTOs;
 using PetCareHub.Application.Services.Interfaces;
+using PetCareHub.API.Hateoas;
+using PetCareHub.Application.DTOs.Hateoas;
+using PetCareHub.Application.DTOs.Paging;
 
 namespace PetCareHub.API.Controllers;
 
@@ -16,25 +19,30 @@ public class AlertasSaudeController(IAlertaSaudeService alertaService) : Control
 
     /// <summary>Lista alertas de saúde, com filtros opcionais por pet, nível e situação.</summary>
     [HttpGet]
-    [ProducesResponseType(typeof(IReadOnlyList<AlertaSaudeResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(PagedResponse<AlertaSaudeResponse>), StatusCodes.Status200OK)]
     public IActionResult GetAll(
         [FromQuery] long? petId,
         [FromQuery] string? nivelAlerta,
-        [FromQuery] bool? resolvido)
+        [FromQuery] bool? resolvido,
+        [FromQuery] PageQuery consulta)
     {
         var temFiltro = petId.HasValue
             || !string.IsNullOrWhiteSpace(nivelAlerta) || resolvido.HasValue;
 
-        var alertas = temFiltro
-            ? alertaService.GetFiltered(petId, nivelAlerta, resolvido)
-            : alertaService.GetAll();
+        // Sem filtro a paginação acontece no banco; com filtro, sobre a lista
+        // já restrita pelo query filter da clínica (ver PagedResponse.FromList).
+        var pagina = temFiltro
+            ? PagedResponse<AlertaSaudeResponse>.FromList(
+                alertaService.GetFiltered(petId, nivelAlerta, resolvido),
+                consulta)
+            : alertaService.GetAll(consulta);
 
-        return Ok(alertas);
+        return Ok(this.ComLinksDePagina(pagina));
     }
 
     /// <summary>Busca um alerta pelo id.</summary>
     [HttpGet("{id:long}")]
-    [ProducesResponseType(typeof(AlertaSaudeResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(Resource<AlertaSaudeResponse>), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public IActionResult GetById(long id)
     {
@@ -42,7 +50,7 @@ public class AlertasSaudeController(IAlertaSaudeService alertaService) : Control
         if (alerta is null)
             return NotFound();
 
-        return Ok(alerta);
+        return Ok(this.ComoRecurso(alerta, id));
     }
 
     /// <summary>Lista os alertas de um pet específico.</summary>

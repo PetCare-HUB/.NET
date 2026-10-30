@@ -1,7 +1,8 @@
-﻿using PetCareHub.Application.DTOs;
+using PetCareHub.Application.DTOs;
 using PetCareHub.Application.Repositories;
 using PetCareHub.Application.Services.Interfaces;
 using PetCareHub.Domain.Entities;
+using PetCareHub.Application.DTOs.Paging;
 
 namespace PetCareHub.Application.Services.Implementations;
 
@@ -10,12 +11,12 @@ public sealed class PetService(
     IClinicaRepository clinicaRepository,
     ITutorRepository tutorRepository) : IPetService
 {
-    public IReadOnlyList<PetResponse> GetAll()
+    public PagedResponse<PetResponse> GetAll(PageQuery consulta)
     {
-        return petRepository
-            .GetAll()
-            .Select(PetResponse.FromDomain)
-            .ToList();
+        return PagedResponse<PetResponse>.From(
+            petRepository.GetPaged(consulta),
+            consulta,
+            PetResponse.FromDomain);
     }
 
     public IReadOnlyList<PetResponse> GetFiltered(long? clinicaId, string? especie, bool? ativo)

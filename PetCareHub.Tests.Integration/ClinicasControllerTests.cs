@@ -23,44 +23,50 @@ public class ClinicasControllerTests(PetCareHubApiFactory factory)
     }
 
     [Fact]
-    public async Task Clinica_CriarConsultarAtualizarExcluir_FluxoCompletoPersisteNoOracle()
+    public async Task PostClinica_NaoExisteNestaApi_RetornaMethodNotAllowed()
     {
-        // Fluxo de ponta a ponta contra o Oracle real da FIAP: cada etapa confere tanto o
-        // corpo da resposta quanto o efeito persistido, buscando de novo com uma requisição
-        // HTTP separada — não basta o Create "parecer" certo, o dado tem que estar lá depois.
-        var cnpj = GerarCnpjUnico();
-        long clinicaId;
-
-        // Create
-        var criacao = await _client.PostAsJsonAsync("/api/Clinicas", new
+        // O cadastro de clínica é da API Java (/auth/cadastro-clinica), onde a
+        // própria clínica define a senha. Criar por aqui geraria clínica sem
+        // senha, reivindicável por quem tiver o código de credenciamento.
+        var resposta = await _client.PostAsJsonAsync("/api/Clinicas", new
         {
-            nome = "Clínica CRUD Teste",
-            cnpj,
-            email = $"crud.{cnpj}@petcare.com",
-            telefone = (string?)null,
-            endereco = "Rua de Teste, 1",
+            nome = "Clínica Que Não Deveria Nascer",
+            cnpj = GerarCnpjUnico(),
             ativo = true
         });
-        criacao.EnsureSuccessStatusCode();
-        using (var corpoCriacao = JsonDocument.Parse(await criacao.Content.ReadAsStringAsync()))
-        {
-            Assert.Equal("Clínica CRUD Teste", corpoCriacao.RootElement.GetProperty("nome").GetString());
-            clinicaId = corpoCriacao.RootElement.GetProperty("id").GetInt64();
-        }
+
+        Assert.Equal(HttpStatusCode.MethodNotAllowed, resposta.StatusCode);
+    }
+
+    [Fact]
+    public async Task Clinica_ConsultarAtualizarExcluir_PersisteNoOracle()
+    {
+        // Fluxo contra o Oracle real da FIAP: cada etapa confere tanto o corpo da
+        // resposta quanto o efeito persistido, buscando de novo com uma requisição
+        // HTTP separada — não basta "parecer" certo, o dado tem que estar lá depois.
+        var cnpj = GerarCnpjUnico();
+        var clinicaId = factory.SemearClinica("Clínica CRUD Teste", cnpj, $"crud.{cnpj}@petcare.com");
+
+        // A clínica olhando os próprios dados
+        var clinicaDona = factory.CreateAuthenticatedClient(clinicaId: clinicaId);
 
         try
         {
-            // Read — confirma que o que foi criado está de fato persistido, não só na
-            // resposta do Create
-            var leituraInicial = await _client.GetAsync($"/api/Clinicas/{clinicaId}");
+            // Read — a resposta vem envelopada com os links HATEOAS
+            var leituraInicial = await clinicaDona.GetAsync($"/api/Clinicas/{clinicaId}");
             leituraInicial.EnsureSuccessStatusCode();
             using (var corpoLeitura = JsonDocument.Parse(await leituraInicial.Content.ReadAsStringAsync()))
             {
-                Assert.Equal(cnpj, corpoLeitura.RootElement.GetProperty("cnpj").GetString());
+                var dados = corpoLeitura.RootElement.GetProperty("data");
+                Assert.Equal(cnpj, dados.GetProperty("cnpj").GetString());
+                Assert.Equal("PRE_CADASTRADO", dados.GetProperty("statusAcesso").GetString());
+
+                var links = corpoLeitura.RootElement.GetProperty("_links");
+                Assert.Contains(links.EnumerateArray(), link => link.GetProperty("rel").GetString() == "self");
             }
 
-            // Update
-            var atualizacao = await _client.PutAsJsonAsync($"/api/Clinicas/{clinicaId}", new
+            // Update — editar o próprio cadastro é legítimo para a clínica
+            var atualizacao = await clinicaDona.PutAsJsonAsync($"/api/Clinicas/{clinicaId}", new
             {
                 nome = "Clínica CRUD Teste Atualizada",
                 cnpj,
@@ -71,27 +77,71 @@ public class ClinicasControllerTests(PetCareHubApiFactory factory)
             });
             atualizacao.EnsureSuccessStatusCode();
 
-            var leituraAposUpdate = await _client.GetAsync($"/api/Clinicas/{clinicaId}");
+            var leituraAposUpdate = await clinicaDona.GetAsync($"/api/Clinicas/{clinicaId}");
             leituraAposUpdate.EnsureSuccessStatusCode();
             using (var corpoAposUpdate = JsonDocument.Parse(await leituraAposUpdate.Content.ReadAsStringAsync()))
             {
-                Assert.Equal("Clínica CRUD Teste Atualizada", corpoAposUpdate.RootElement.GetProperty("nome").GetString());
-                Assert.Equal("Rua de Teste, 2", corpoAposUpdate.RootElement.GetProperty("endereco").GetString());
+                var dados = corpoAposUpdate.RootElement.GetProperty("data");
+                Assert.Equal("Clínica CRUD Teste Atualizada", dados.GetProperty("nome").GetString());
+                Assert.Equal("Rua de Teste, 2", dados.GetProperty("endereco").GetString());
             }
 
-            // Delete
-            var exclusao = await _client.DeleteAsync($"/api/Clinicas/{clinicaId}");
+            // Delete — descredenciar é do admin
+            var admin = factory.CreateAuthenticatedClient(role: "ADMIN", clinicaId: null);
+            var exclusao = await admin.DeleteAsync($"/api/Clinicas/{clinicaId}");
             Assert.Equal(HttpStatusCode.NoContent, exclusao.StatusCode);
 
-            var leituraAposDelete = await _client.GetAsync($"/api/Clinicas/{clinicaId}");
+            var leituraAposDelete = await admin.GetAsync($"/api/Clinicas/{clinicaId}");
             Assert.Equal(HttpStatusCode.NotFound, leituraAposDelete.StatusCode);
         }
-        catch
+        finally
         {
-            // Se qualquer assert acima falhar antes do Delete "oficial" do fluxo, ainda
-            // assim não deixa a clínica de teste presa no banco compartilhado.
-            await _client.DeleteAsync($"/api/Clinicas/{clinicaId}");
-            throw;
+            // Não deixa a clínica de teste presa no banco compartilhado se um
+            // assert falhar antes do Delete do fluxo.
+            factory.RemoverClinicaSemeada(clinicaId);
+        }
+    }
+
+    [Fact]
+    public async Task DeleteClinica_TokenDeClinica_RetornaForbidden()
+    {
+        // Descredenciar quem está na rede é decisão de quem administra a rede.
+        var cnpj = GerarCnpjUnico();
+        var clinicaId = factory.SemearClinica("Clínica Indelével", cnpj, $"indelevel.{cnpj}@petcare.com");
+
+        try
+        {
+            var clinicaDona = factory.CreateAuthenticatedClient(clinicaId: clinicaId);
+            var resposta = await clinicaDona.DeleteAsync($"/api/Clinicas/{clinicaId}");
+
+            Assert.Equal(HttpStatusCode.Forbidden, resposta.StatusCode);
+        }
+        finally
+        {
+            factory.RemoverClinicaSemeada(clinicaId);
+        }
+    }
+
+    [Fact]
+    public async Task GetClinicaPorId_DeOutraClinica_NaoVazaDados()
+    {
+        // Arrange
+        var cnpj = GerarCnpjUnico();
+        var idAlheio = factory.SemearClinica("Clínica Alheia", cnpj, $"alheia.{cnpj}@petcare.com");
+
+        try
+        {
+            // Act — uma clínica qualquer tenta ler os dados da outra
+            var intruso = factory.CreateAuthenticatedClient(clinicaId: idAlheio + 1);
+            var resposta = await intruso.GetAsync($"/api/Clinicas/{idAlheio}");
+
+            // Assert — o filtro global do EF não pode deixar vazar carteira de
+            // pets, métricas nem agenda de uma clínica para outra
+            Assert.Equal(HttpStatusCode.NotFound, resposta.StatusCode);
+        }
+        finally
+        {
+            factory.RemoverClinicaSemeada(idAlheio);
         }
     }
 

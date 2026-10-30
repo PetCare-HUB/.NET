@@ -12,26 +12,19 @@ public class DashboardControllerTests(PetCareHubApiFactory factory)
     [Fact]
     public async Task GetResumoClinica_ClinicaExistente_RetornaStatusOkEJson()
     {
-        // Arrange — cria a própria clínica de teste (não depende de nenhum id fixo já
+        // Arrange — semeia a própria clínica de teste (não depende de nenhum id fixo já
         // existente na base compartilhada, que pode não existir em outro ambiente/Oracle).
         var cnpj = GerarCnpjUnico();
-        var criacao = await _client.PostAsJsonAsync("/api/Clinicas", new
-        {
-            nome = "Clínica Dashboard Teste",
-            cnpj,
-            email = $"dashboard.{cnpj}@petcare.com",
-            telefone = (string?)null,
-            endereco = (string?)null,
-            ativo = true
-        });
-        criacao.EnsureSuccessStatusCode();
-        using var corpoCriacao = JsonDocument.Parse(await criacao.Content.ReadAsStringAsync());
-        var clinicaId = corpoCriacao.RootElement.GetProperty("id").GetInt64();
+        var clinicaId = factory.SemearClinica(
+            "Clínica Dashboard Teste", cnpj, $"dashboard.{cnpj}@petcare.com");
+
+        // O dashboard é da clínica: o token precisa ser dela.
+        var clinicaDona = factory.CreateAuthenticatedClient(clinicaId: clinicaId);
 
         try
         {
             // Act
-            var response = await _client.GetAsync($"/api/Dashboard/clinicas/{clinicaId}");
+            var response = await clinicaDona.GetAsync($"/api/Dashboard/clinicas/{clinicaId}");
 
             // Assert
             response.EnsureSuccessStatusCode();
@@ -44,7 +37,7 @@ public class DashboardControllerTests(PetCareHubApiFactory factory)
         finally
         {
             // Cleanup garantido mesmo se um Assert falhar acima.
-            await _client.DeleteAsync($"/api/Clinicas/{clinicaId}");
+            factory.RemoverClinicaSemeada(clinicaId);
         }
     }
 

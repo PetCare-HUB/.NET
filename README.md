@@ -105,12 +105,13 @@ Jwt__PublicKeyPem="-----BEGIN PUBLIC KEY-----\n...\n-----END PUBLIC KEY-----"
 - ASP.NET Core Web API (Controllers)
 - Entity Framework Core 9
 - Oracle.EntityFrameworkCore 9.23
+- MongoDB.Driver 3.12 — documentos resumidos para recuperação contextual da IA
 - Oracle Database FIAP
 - JWT Bearer (RS256) — valida os mesmos tokens emitidos pela API Java, não emite token próprio
 - Swagger / OpenAPI (Swashbuckle)
 - Serilog (console + arquivo, com correlation id) — logging estruturado
 - OpenTelemetry (tracing + métricas via console exporter)
-- AspNetCore.HealthChecks.Oracle — monitoramento de saúde do banco
+- Health checks de Oracle e MongoDB
 - xUnit + Moq — testes automatizados (unitários e de integração)
 - C# 13 (records, primary constructors)
 - Git e GitHub
@@ -141,7 +142,7 @@ PetCareHub
 ├── PetCareHub.Domain              ← Entidades de domínio, com as regras que dependem só
 │   └── Entities                     do próprio estado da entidade (ex.: AlertaSaude.Resolver())
 │
-├── PetCareHub.Infrastructure      ← Persistência (EF Core + Oracle)
+├── PetCareHub.Infrastructure      ← Persistência (EF Core + Oracle + MongoDB)
 │   └── Persistence
 │       ├── Configurations         ← Fluent API por entidade (mapeia o schema já criado pelo Flyway)
 │       ├── Repositories
@@ -180,6 +181,10 @@ LeituraAmbiente    LEITURA_AMBIENTE
 
 O mapeamento entre C# e Oracle é feito com **Fluent API** em `PetCareHub.Infrastructure/Persistence/Configurations`, respeitando os nomes reais das tabelas e colunas criadas pelo Flyway. Credenciais de login (`SENHA_HASH` em `TUTOR`/`CLINICA`) não são mapeadas pelo .NET — autenticação é responsabilidade exclusiva da API Java.
 
+As consultas EF Core são limitadas à clínica da claim `clinicaId` do JWT. O MongoDB guarda
+resumos por pet/período derivados das leituras Oracle; o Oracle continua como fonte oficial
+das leituras detalhadas.
+
 ---
 
 ## Configuração do Banco Oracle
@@ -211,6 +216,10 @@ Com o seguinte conteúdo:
 ```
 
 `appsettings.Development.json` está no `.gitignore` — nunca foi (e não deve ser) commitado.
+
+Para MongoDB local, a API usa `mongodb://localhost:27017` por padrão. Para Atlas ou outro
+ambiente, configure `ConnectionStrings__Mongo` com a URI da conexão e `Mongo__Database` com
+o nome do banco (padrão: `petcarehub`). Não versione uma URI com credenciais.
 
 > **Importante para quem for entregar/empacotar este projeto:** gere o ZIP de entrega a
 > partir do GitHub (botão **Code → Download ZIP** no repositório, ou um `git clone` limpo em
@@ -526,13 +535,11 @@ estão OK?) em três endpoints:
 | Rota | O que verifica | Quando usar |
 |---|---|---|
 | `GET /health/live` | Só o próprio processo (`self`) — nunca toca no Oracle | Uma orquestração decidindo se precisa reiniciar o processo |
-| `GET /health/ready` | Só as dependências externas — hoje, só o `oracle-db` | Decidir se a API está pronta para receber tráfego real |
-| `GET /health` | Os dois checks juntos (`self` + `oracle-db`) | Compatibilidade / visão geral rápida |
+| `GET /health/ready` | Oracle e MongoDB | Decidir se a API está pronta para receber tráfego real |
+| `GET /health` | Processo, Oracle e MongoDB | Compatibilidade / visão geral rápida |
 
-> A **única** dependência externa que esta API chama é o Oracle da FIAP — não há fila,
-> gateway de pagamento ou outra API de terceiro no caminho. Por isso só existe um
-> dependency check (`oracle-db`); se um dia entrar uma integração nova (ex.: consumir a API
-> Java), o check dela entraria em `/health/ready` também.
+Oracle permanece como fonte das leituras IoT detalhadas. MongoDB armazena os documentos
+resumidos usados como contexto recuperável pela IA.
 
 Formato de resposta (igual nos três endpoints):
 
@@ -554,16 +561,34 @@ Formato de resposta (igual nos três endpoints):
       "description": null,
       "duration": "00:00:00.3339239",
       "error": null
+    },
+    {
+      "name": "mongodb",
+      "status": "Healthy",
+      "description": null,
+      "duration": "00:00:00.0100000",
+      "error": null
     }
   ]
 }
 ```
 
-Quando o Oracle está inacessível ou as credenciais estão erradas, o check `oracle-db` (e por
-consequência `/health` e `/health/ready`) volta como `Unhealthy` (HTTP 503), com o campo
-`error` trazendo a mensagem original do banco (ex.: `ORA-01017: invalid username/password`).
-`/health/live` continua `Healthy` nesse cenário — é exatamente o ponto de ele existir
-separado: o processo está bem, só uma dependência dele que não está.
+Quando Oracle ou MongoDB estiver inacessível, `/health` e `/health/ready` voltam como
+`Unhealthy` (HTTP 503). `/health/live` continua verificando apenas se o processo está de pé.
+
+### Resumos para contexto da IA
+
+`POST /api/contexto-ia/pets/{petId}/resumos?inicio=...&fim=...` agrega as leituras existentes
+no Oracle para um período de até 31 dias e grava um documento na coleção `resumos_pet_ia` do
+MongoDB. `GET` na mesma rota consulta o resumo já gerado. Use datas ISO 8601, por exemplo:
+
+```text
+POST /api/contexto-ia/pets/9/resumos?inicio=2026-10-01T00:00:00&fim=2026-10-08T00:00:00
+```
+
+As rotas exigem um token de clínica. A claim `clinicaId` limita a leitura no Oracle e a
+consulta ao Mongo à clínica autenticada. O conteúdo é um resumo factual de atividade,
+alimentação e ambiente; ainda não gera embeddings nem faz a busca RAG/LLM.
 
 ---
 

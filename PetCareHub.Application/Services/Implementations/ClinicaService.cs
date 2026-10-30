@@ -1,9 +1,10 @@
-﻿using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging;
 using PetCareHub.Application.DTOs;
 using PetCareHub.Application.Diagnostics;
 using PetCareHub.Application.Repositories;
 using PetCareHub.Application.Services.Interfaces;
 using PetCareHub.Domain.Entities;
+using PetCareHub.Application.DTOs.Paging;
 
 namespace PetCareHub.Application.Services.Implementations;
 
@@ -11,12 +12,12 @@ public sealed class ClinicaService(
     IClinicaRepository clinicaRepository,
     ILogger<ClinicaService> logger) : IClinicaService
 {
-    public IReadOnlyList<ClinicaResponse> GetAll()
+    public PagedResponse<ClinicaResponse> GetAll(PageQuery consulta)
     {
-        return clinicaRepository
-            .GetAll()
-            .Select(ClinicaResponse.FromDomain)
-            .ToList();
+        return PagedResponse<ClinicaResponse>.From(
+            clinicaRepository.GetPaged(consulta),
+            consulta,
+            ClinicaResponse.FromDomain);
     }
     
     public ClinicaResponse? GetById(long id)
@@ -25,34 +26,15 @@ public sealed class ClinicaService(
         return clinica is null ? null : ClinicaResponse.FromDomain(clinica);
     }
     
-    public ClinicaResponse Create(ClinicaRequest request)
-    {
-        using var activity = AppTelemetry.Source.StartActivity("ClinicaService.Create");
-        activity?.SetTag("clinica.cnpj", request.Cnpj);
+    // Create removido de propósito: esta API não cadastra clínica.
+    //
+    // O .NET não mapeia SENHA_HASH — autenticação é responsabilidade exclusiva
+    // da API Java — então uma clínica criada aqui nasceria sem senha. E clínica
+    // sem senha pode ser reivindicada por qualquer um que conheça o e-mail, o
+    // CNPJ (que é público) e o código de credenciamento, que é um só para toda
+    // a rede. O caminho correto é POST /auth/cadastro-clinica no Java, onde a
+    // própria clínica define a senha, seguido da aprovação de um admin.
 
-        if (clinicaRepository.ExistsByCnpj(request.Cnpj))
-        {
-            logger.LogWarning("Tentativa de criar clínica com CNPJ {Cnpj} já cadastrado", request.Cnpj);
-            throw new InvalidOperationException($"Já existe uma clínica com CNPJ {request.Cnpj}.");
-        }
-
-        var clinica = new Clinica
-        {
-            Nome = request.Nome,
-            Cnpj = request.Cnpj,
-            Email = request.Email,
-            Telefone = request.Telefone,
-            Endereco = request.Endereco,
-            Ativo = request.Ativo
-        };
-
-        clinicaRepository.Add(clinica);
-
-        logger.LogInformation("Clínica {ClinicaId} ({Nome}) criada com sucesso", clinica.Id, clinica.Nome);
-
-        return ClinicaResponse.FromDomain(clinica);
-    }
-    
     public ClinicaResponse? Update(long id, ClinicaRequest request)
     {
         using var activity = AppTelemetry.Source.StartActivity("ClinicaService.Update");

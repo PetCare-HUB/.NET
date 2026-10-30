@@ -1,7 +1,10 @@
-﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using PetCareHub.Application.DTOs;
 using PetCareHub.Application.Services.Interfaces;
+using PetCareHub.API.Hateoas;
+using PetCareHub.Application.DTOs.Hateoas;
+using PetCareHub.Application.DTOs.Paging;
 
 namespace PetCareHub.API.Controllers;
 
@@ -16,28 +19,33 @@ public class ScoresSaudeController(IScoreSaudeService scoreSaudeService) : Contr
 
     /// <summary>Lista scores de saúde, com filtros opcionais por pet, clínica, categoria e faixa.</summary>
     [HttpGet]
-    [ProducesResponseType(typeof(IReadOnlyList<ScoreSaudeResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(PagedResponse<ScoreSaudeResponse>), StatusCodes.Status200OK)]
     public IActionResult GetAll(
         [FromQuery] long? petId,
         [FromQuery] long? clinicaId,
         [FromQuery] string? categoria,
         [FromQuery] int? scoreMin,
-        [FromQuery] int? scoreMax)
+        [FromQuery] int? scoreMax,
+        [FromQuery] PageQuery consulta)
     {
         var temFiltro = petId.HasValue || clinicaId.HasValue
             || !string.IsNullOrWhiteSpace(categoria)
             || scoreMin.HasValue || scoreMax.HasValue;
 
-        var scores = temFiltro
-            ? scoreSaudeService.GetFiltered(petId, clinicaId, categoria, scoreMin, scoreMax)
-            : scoreSaudeService.GetAll();
+        // Sem filtro a paginação acontece no banco; com filtro, sobre a lista
+        // já restrita pelo query filter da clínica (ver PagedResponse.FromList).
+        var pagina = temFiltro
+            ? PagedResponse<ScoreSaudeResponse>.FromList(
+                scoreSaudeService.GetFiltered(petId, clinicaId, categoria, scoreMin, scoreMax),
+                consulta)
+            : scoreSaudeService.GetAll(consulta);
 
-        return Ok(scores);
+        return Ok(this.ComLinksDePagina(pagina));
     }
 
     /// <summary>Busca um score pelo id.</summary>
     [HttpGet("{id:long}")]
-    [ProducesResponseType(typeof(ScoreSaudeResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(Resource<ScoreSaudeResponse>), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public IActionResult GetById(long id)
     {
@@ -45,7 +53,7 @@ public class ScoresSaudeController(IScoreSaudeService scoreSaudeService) : Contr
         if (score is null)
             return NotFound();
 
-        return Ok(score);
+        return Ok(this.ComoRecurso(score, id, somenteLeitura: true));
     }
 
     /// <summary>Histórico de scores de saúde de um pet.</summary>

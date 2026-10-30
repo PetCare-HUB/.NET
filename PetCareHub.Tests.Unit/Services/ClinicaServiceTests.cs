@@ -17,38 +17,11 @@ public class ClinicaServiceTests
         _clinicaService = new ClinicaService(_clinicaRepository.Object, NullLogger<ClinicaService>.Instance);
     }
 
-    [Fact]
-    public void Create_CnpjDuplicado_LancaExcecao()
-    {
-        // Arrange
-        var request = new ClinicaRequest("Clínica Teste", "99999999000199", "teste@petcare.com", null, null, true);
-        _clinicaRepository.Setup(r => r.ExistsByCnpj(request.Cnpj)).Returns(true);
-
-        // Act
-        var act = () => _clinicaService.Create(request);
-
-        // Assert
-        var ex = Assert.Throws<InvalidOperationException>(act);
-        Assert.Contains(request.Cnpj, ex.Message);
-        _clinicaRepository.Verify(r => r.Add(It.IsAny<Clinica>()), Times.Never);
-    }
-
-    [Fact]
-    public void Create_DadosValidos_RetornaClinicaCriada()
-    {
-        // Arrange
-        var request = new ClinicaRequest("Clínica Teste", "99999999000199", "teste@petcare.com", null, null, true);
-        _clinicaRepository.Setup(r => r.ExistsByCnpj(request.Cnpj)).Returns(false);
-
-        // Act
-        var resultado = _clinicaService.Create(request);
-
-        // Assert
-        Assert.NotNull(resultado);
-        Assert.Equal(request.Nome, resultado.Nome);
-        Assert.Equal(request.Cnpj, resultado.Cnpj);
-        _clinicaRepository.Verify(r => r.Add(It.IsAny<Clinica>()), Times.Once);
-    }
+    // Não há teste de Create: esta API não cria clínica. Quem entra na rede se
+    // cadastra em POST /auth/cadastro-clinica na API Java, definindo a própria
+    // senha, e depois é aprovado por um admin. Criar clínica por aqui produziria
+    // um registro sem senha — e um registro sem senha pode ser reivindicado por
+    // qualquer um que tenha o código de credenciamento, que é único para todas.
 
     [Fact]
     public void Update_CnpjDuplicadoDeOutraClinica_LancaExcecao()

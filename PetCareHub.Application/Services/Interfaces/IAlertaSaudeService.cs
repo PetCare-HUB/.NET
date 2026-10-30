@@ -1,10 +1,11 @@
-﻿using PetCareHub.Application.DTOs;
+using PetCareHub.Application.DTOs;
+using PetCareHub.Application.DTOs.Paging;
 
 namespace PetCareHub.Application.Services.Interfaces;
 
 public interface IAlertaSaudeService
 {
-    IReadOnlyList<AlertaSaudeResponse> GetAll();
+    PagedResponse<AlertaSaudeResponse> GetAll(PageQuery consulta);
 
     IReadOnlyList<AlertaSaudeResponse> GetFiltered(long? petId, string? nivelAlerta, bool? resolvido);
 
