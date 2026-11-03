@@ -91,8 +91,23 @@ suíte de testes do lado Java). Em produção, sobrescreva com a chave pública 
 de ambiente:
 
 ```txt
-Jwt__PublicKeyPem="-----BEGIN PUBLIC KEY-----\n...\n-----END PUBLIC KEY-----"
+Jwt__PublicKeyPem="-----BEGIN PUBLIC KEY-----
+...
+-----END PUBLIC KEY-----"
 ```
+
+A variável aceita as mesmas duas formas que o `rsa.public-key` do Java: o conteúdo do PEM
+direto, como acima, ou um caminho prefixado com `file:`.
+
+```txt
+Jwt__PublicKeyPem="file:/etc/secrets/public_key.pem"
+```
+
+A segunda é a recomendada quando a API está hospedada. No Render, um **Secret File** chamado
+`public_key.pem` é montado em `/etc/secrets/` e o valor da variável passa a ser só o caminho —
+assim a chave não depende de quebra de linha sobreviver dentro de uma variável de ambiente, e
+os dois serviços ficam com exatamente o mesmo valor configurado. Um caminho que não existe
+derruba a aplicação na inicialização, com o caminho no erro.
 
 > **Importante:** essa variável precisa conter exatamente a mesma chave pública configurada
 > como `RSA_PUBLIC_KEY` na API Java — se as chaves não baterem, todo token é rejeitado com
@@ -329,6 +344,64 @@ Abra no navegador:
 ```txt
 http://localhost:5062/
 ```
+
+---
+
+## Deploy (Docker e Render)
+
+O Render não tem runtime nativo de .NET: ele constrói e inicia a aplicação a partir do
+[`Dockerfile`](Dockerfile) na raiz do repositório. Docker e Render não são alternativas — o
+Dockerfile é *como* a aplicação roda no Render. O [`render.yaml`](render.yaml) registra,
+versionado, a configuração exata do serviço.
+
+### Rodar a imagem localmente
+
+```bash
+docker build -t petcarehub-api .
+docker run -p 8080:8080 \
+  -e ConnectionStrings__DefaultConnection="User Id=SEU_USUARIO;Password=SUA_SENHA;Data Source=..." \
+  petcarehub-api
+```
+
+O Swagger fica em `http://localhost:8080/`.
+
+### Variáveis de ambiente
+
+O ASP.NET Core traduz `__` (dois sublinhados) no nome da variável para `:` na configuração —
+`ConnectionStrings__DefaultConnection` alimenta `ConnectionStrings:DefaultConnection`.
+
+| Variável | Obrigatória | O que acontece sem ela |
+|---|---|---|
+| `ConnectionStrings__DefaultConnection` | **Sim** | A aplicação não sobe: falha explícita na inicialização. |
+| `Jwt__PublicKeyPem` | **Sim em produção** | A API sobe saudável e recusa **todo** token real com `401`, porque cai na chave de desenvolvimento commitada. Um `WRN` no log avisa na subida. Aceita o PEM direto ou `file:/etc/secrets/public_key.pem` (Secret File), e precisa ser a mesma chave do `RSA_PUBLIC_KEY` do serviço Java. |
+| `ConnectionStrings__Mongo` | Não | `/health/ready` reporta `mongodb` como `Degraded` (HTTP 200) e o resto da API continua servindo. |
+| `Mongo__Database` | Não | Usa `petcarehub`. |
+| `ASPNETCORE_ENVIRONMENT` | Não | A imagem já define `Production`. |
+| `PORT` | Não | A imagem usa `8080`; o Render injeta a porta dele e o entrypoint a respeita. |
+
+### Configuração do serviço no Render
+
+| Campo | Valor |
+|---|---|
+| Language | `Docker` |
+| Dockerfile Path | `./Dockerfile` |
+| Health Check Path | `/health/live` |
+| Auto-Deploy | ligado |
+| Secret File | `public_key.pem`, com a chave pública do serviço Java |
+
+O health check aponta para `/health/live` de propósito: `/health/ready` depende do Oracle da
+FIAP, e uma instabilidade de rede até o banco marcaria o deploy como falho mesmo com a API de
+pé. Quem decide reiniciar um processo precisa saber se o processo morreu, não se a FIAP oscilou.
+
+### Atrás do proxy
+
+Hospedada, a API recebe HTTP puro — o TLS termina na borda do Render. Por isso o pipeline começa
+com `UseForwardedHeaders` lendo `X-Forwarded-Proto`: sem isso `Request.Scheme` valeria `http` e
+todo link [HATEOAS](#hateoas) sairia com o esquema errado.
+
+> **Plano free:** o serviço dorme depois de ~15 min sem tráfego e o primeiro acesso seguinte leva
+> cerca de 50 s para responder. Vale abrir a URL e esperar essa primeira resposta antes de gravar
+> qualquer demonstração.
 
 ---
 
@@ -729,8 +802,19 @@ Formato de resposta (igual nos três endpoints):
 }
 ```
 
-Quando Oracle ou MongoDB estiver inacessível, `/health` e `/health/ready` voltam como
-`Unhealthy` (HTTP 503). `/health/live` continua verificando apenas se o processo está de pé.
+Os dois bancos não pesam igual, e os endpoints refletem isso:
+
+| Dependência fora | `/health` e `/health/ready` | Efeito na API |
+|---|---|---|
+| **Oracle** | `Unhealthy` (HTTP 503) | Nada responde: é de lá que vem todo o dado relacional |
+| **MongoDB** | `Degraded` (HTTP 200) | Só as rotas `/api/contexto-ia/...` param; o resto continua servindo |
+
+O MongoDB guarda apenas os resumos de contexto da IA, então responder 503 por causa dele
+afirmaria que a API inteira está fora — o que não é verdade. `Degraded` responde 200 e mostra
+no corpo qual check caiu: o Mongo continua sendo verificado e reportado, só não derruba o
+grupo inteiro junto.
+
+`/health/live` continua verificando apenas se o processo está de pé.
 
 ### Resumos para contexto da IA
 
@@ -817,7 +901,11 @@ dotnet test
     token malformado/expirado (`401`) e token válido com role sem permissão (`403`), além do
     caminho autorizado (`200`) e da confirmação de que `/health/live` continua público;
   - `HealthCheckTests` — cobre `/health`, `/health/live` e `/health/ready` separadamente,
-    checando o `status` real (`Healthy`), não só "respondeu alguma coisa";
+    checando o `status` real (`Healthy`), não só "respondeu alguma coisa". Também garante a
+    composição de cada grupo: o readiness lista os dois serviços externos (`oracle-db` e
+    `mongodb`) e o liveness não lista nenhum dos dois — é essa separação que permite apontar
+    o health check do Render para `/health/live` sem que uma oscilação da FIAP derrube o
+    deploy;
   - `Clinica_ConsultarAtualizarExcluir_PersisteNoOracle` (em `ClinicasControllerTests`) —
     fluxo de ponta a ponta real (get → update → get → delete → get), conferindo o corpo de cada
     resposta e que a mudança realmente persistiu no Oracle entre uma chamada HTTP e a seguinte.

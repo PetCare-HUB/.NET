@@ -22,6 +22,28 @@ public class HealthCheckTests(PetCareHubApiFactory factory)
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         Assert.Contains("\"status\":\"Healthy\"", conteudo);
         Assert.DoesNotContain("oracle-db", conteudo);
+        Assert.DoesNotContain("mongodb", conteudo);
+    }
+
+    [Fact]
+    public async Task GetHealthReady_ChecaServicosExternos_IncluiOracleEMongodb()
+    {
+        // O readiness precisa cobrir as dependências externas, não só o banco relacional:
+        // foi a ausência de um segundo serviço externo que a correção da Sprint 3 apontou.
+        // Este teste trava isso — remover ou renomear o check do MongoDB passa a quebrar a
+        // suíte em vez de passar despercebido.
+        //
+        // A asserção é sobre o check existir e ser consultado, não sobre o MongoDB estar de
+        // pé: ele é dependência opcional (failureStatus Degraded), então exigir "Healthy"
+        // aqui tornaria o teste um verificador de ambiente, não da configuração da API.
+
+        // Act
+        var response = await _client.GetAsync("/health/ready");
+        var conteudo = await response.Content.ReadAsStringAsync();
+
+        // Assert
+        Assert.Contains("\"name\":\"oracle-db\"", conteudo);
+        Assert.Contains("\"name\":\"mongodb\"", conteudo);
     }
 
     [Fact]
@@ -42,7 +64,7 @@ public class HealthCheckTests(PetCareHubApiFactory factory)
     }
 
     [Fact]
-    public async Task GetHealth_Combinado_IncluiSelfEOracle()
+    public async Task GetHealth_Combinado_IncluiSelfOracleEMongodb()
     {
         // Act
         var response = await _client.GetAsync("/health");
@@ -52,5 +74,6 @@ public class HealthCheckTests(PetCareHubApiFactory factory)
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         Assert.Contains("\"name\":\"self\"", conteudo);
         Assert.Contains("\"name\":\"oracle-db\"", conteudo);
+        Assert.Contains("\"name\":\"mongodb\"", conteudo);
     }
 }

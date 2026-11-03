@@ -2,6 +2,7 @@ using System.Reflection;
 using CorrelationId;
 using CorrelationId.DependencyInjection;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
+using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.OpenApi.Models;
 using OpenTelemetry.Metrics;
@@ -39,6 +40,19 @@ public class Program
 
         builder.Services.AddDefaultCorrelationId();
         builder.Services.AddHttpContextAccessor();
+
+        // Hospedada em container atrás de proxy (Render), a API recebe HTTP puro: o
+        // TLS termina na borda. Sem ler X-Forwarded-Proto, Request.Scheme vale "http"
+        // e todo link HATEOAS sai com esquema errado — justamente o que
+        // HateoasExtensions promete entregar correto. Os KnownNetworks/KnownProxies
+        // padrão só confiam no loopback, e o proxy do Render não está nele, daí o
+        // Clear() nos dois.
+        builder.Services.Configure<ForwardedHeadersOptions>(options =>
+        {
+            options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
+            options.KnownNetworks.Clear();
+            options.KnownProxies.Clear();
+        });
 
         builder.Services.AddPetCareHubDbContext(builder.Configuration);
         builder.Services.AddPetCareHubMongo(builder.Configuration);
@@ -86,9 +100,15 @@ public class Program
                 name: "oracle-db",
                 failureStatus: HealthStatus.Unhealthy,
                 tags: new[] { "ready", "db", "oracle" })
+            // Degraded, não Unhealthy: o Mongo guarda só os resumos de contexto da IA.
+            // Sem ele a API continua servindo todo o dado relacional, então responder
+            // 503 no readiness afirmaria que nada funciona, o que é falso. Degraded
+            // responde 200 e mostra no corpo qual check caiu — o Mongo continua sendo
+            // verificado e reportado, só não derruba o grupo inteiro junto.
             .AddMongoDb(
                 databaseNameFactory: _ => builder.Configuration["Mongo:Database"] ?? "petcarehub",
                 name: "mongodb",
+                failureStatus: HealthStatus.Degraded,
                 timeout: TimeSpan.FromSeconds(5),
                 tags: new[] { "ready", "db", "mongodb" });
 
@@ -124,19 +144,38 @@ public class Program
 
         var app = builder.Build();
 
+        // Antes de qualquer coisa que leia esquema ou IP do request — inclusive o
+        // UseHttpsRedirection abaixo, que sem isso tentaria redirecionar um request
+        // que já chegou por HTTPS na borda do proxy.
+        app.UseForwardedHeaders();
+
         app.UseCorrelationId();
 
         app.UseExceptionHandler();
 
-        if (app.Environment.IsDevelopment())
+        // Sem a chave pública certa a API sobe saudável e recusa todo token real com
+        // 401 — falha silenciosa que só aparece quando alguém tenta usar a API. Um
+        // aviso no log na subida é o que transforma isso em diagnóstico.
+        if (!app.Environment.IsDevelopment()
+            && string.IsNullOrWhiteSpace(builder.Configuration["Jwt:PublicKeyPem"]))
         {
-            app.UseSwagger();
-            app.UseSwaggerUI(options =>
-            {
-                options.SwaggerEndpoint("/swagger/v1/swagger.json", "PetCare Hub API v1");
-                options.RoutePrefix = string.Empty;
-            });
+            app.Logger.LogWarning(
+                "Jwt:PublicKeyPem não configurado: a validação de token está usando a chave " +
+                "pública de desenvolvimento commitada em Keys/public_key.pem. Tokens emitidos " +
+                "pela API Java em produção serão recusados com 401. Configure a variável de " +
+                "ambiente Jwt__PublicKeyPem com a mesma chave pública do RSA_PUBLIC_KEY do Java.");
         }
+
+        // O Swagger fica ligado também fora de Development: hospedada, esta é a única
+        // interface da API, e é por ela que a integração com o Java e com o Oracle é
+        // demonstrada. Não expõe dado nenhum — todo endpoint de negócio continua
+        // exigindo o JWT.
+        app.UseSwagger();
+        app.UseSwaggerUI(options =>
+        {
+            options.SwaggerEndpoint("/swagger/v1/swagger.json", "PetCare Hub API v1");
+            options.RoutePrefix = string.Empty;
+        });
 
         app.UseHttpsRedirection();
         app.UseAuthentication();

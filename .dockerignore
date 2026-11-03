@@ -1,0 +1,17 @@
+# Fora do contexto de build: encurta o upload e evita que artefato local ou
+# credencial de desenvolvimento entre na imagem.
+**/bin/
+**/obj/
+**/logs/
+**/.vs/
+**/.idea/
+.git/
+.github/
+**/appsettings.Development.json
+**/appsettings.Local.json
+**/*.user
+**/*.suo
+**/*.DotSettings.user
+README.md
+Dockerfile
+.dockerignore

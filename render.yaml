@@ -1,0 +1,44 @@
+# Blueprint do servico .NET no Render.
+#
+# Nao substitui a criacao manual pelo painel: serve para registrar, versionado,
+# exatamente com que configuracao o servico roda. As variaveis marcadas com
+# "sync: false" nao ficam no repositorio — o Render pede o valor de cada uma.
+services:
+  - type: web
+    name: petcarehub-dotnet
+    runtime: docker
+    plan: free
+    region: ohio
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    autoDeploy: true
+
+    # Liveness de proposito, nao /health/ready: readiness depende do Oracle da
+    # FIAP e do Mongo, e um deles instavel marcaria o deploy como falho mesmo
+    # com a API de pe. Quem decide reiniciar o processo olha o liveness.
+    healthCheckPath: /health/live
+
+    envVars:
+      - key: ASPNETCORE_ENVIRONMENT
+        value: Production
+
+      # Oracle da FIAP. Sem ela a API nao sobe (falha explicita na inicializacao).
+      - key: ConnectionStrings__DefaultConnection
+        sync: false
+
+      # A MESMA chave publica do RSA_PUBLIC_KEY do servico Java. Sem ela a API
+      # sobe saudavel e recusa todo token real com 401.
+      #
+      # O servico Java usa "file:/etc/secrets/public_key.pem": a chave entra como
+      # Secret File no painel e a variavel so aponta para ela. Vale o mesmo aqui —
+      # suba o Secret File public_key.pem e deixe este valor igual ao do Java.
+      - key: Jwt__PublicKeyPem
+        sync: false
+
+      # MongoDB Atlas. Opcional: sem ela o /health/ready reporta mongodb
+      # Degraded e o resto da API continua funcionando.
+      - key: ConnectionStrings__Mongo
+        sync: false
+
+      - key: Mongo__Database
+        value: petcarehub

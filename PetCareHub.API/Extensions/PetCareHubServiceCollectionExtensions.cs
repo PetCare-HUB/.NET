@@ -87,17 +87,13 @@ public static class PetCareHubServiceCollectionExtensions
     /// valor configurado como RSA_PUBLIC_KEY no Java) ou, na ausência dela, do arquivo
     /// <c>Keys/public_key.pem</c> commitado (chave de desenvolvimento/teste, a mesma usada
     /// pela suíte de testes do Java — nunca a chave real de produção).
+    /// Ver <see cref="ResolverChavePublica"/> para as formas aceitas no valor.
     /// </summary>
     public static IServiceCollection AddPetCareHubAuthentication(
         this IServiceCollection services,
         IConfiguration configuration)
     {
-        var publicKeyPem = configuration["Jwt:PublicKeyPem"];
-        if (string.IsNullOrWhiteSpace(publicKeyPem))
-        {
-            var keyPath = Path.Combine(AppContext.BaseDirectory, "Keys", "public_key.pem");
-            publicKeyPem = File.ReadAllText(keyPath);
-        }
+        var publicKeyPem = ResolverChavePublica(configuration);
 
         var rsa = RSA.Create();
         rsa.ImportFromPem(publicKeyPem);
@@ -128,5 +124,31 @@ public static class PetCareHubServiceCollectionExtensions
         services.AddAuthorization();
 
         return services;
+    }
+
+    /// <summary>
+    /// Devolve o PEM da chave pública a partir de <c>Jwt:PublicKeyPem</c>.
+    /// </summary>
+    /// <remarks>
+    /// Aceita as mesmas duas formas que o <c>rsa.public-key</c> do Java: o conteúdo do PEM
+    /// direto no valor, ou um <c>file:/caminho</c>. A segunda é a que importa hospedado —
+    /// é assim que a chave chega pelos Secret Files do Render, montados em
+    /// <c>/etc/secrets</c>, e evita depender de quebra de linha sobreviver dentro de uma
+    /// variável de ambiente. Com isso os dois serviços recebem exatamente o mesmo valor
+    /// configurado. Sem nada configurado, cai na chave de desenvolvimento commitada.
+    /// </remarks>
+    private static string ResolverChavePublica(IConfiguration configuration)
+    {
+        var configurado = configuration["Jwt:PublicKeyPem"];
+
+        if (string.IsNullOrWhiteSpace(configurado))
+            return File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "Keys", "public_key.pem"));
+
+        const string prefixoArquivo = "file:";
+
+        if (configurado.StartsWith(prefixoArquivo, StringComparison.OrdinalIgnoreCase))
+            return File.ReadAllText(configurado[prefixoArquivo.Length..].Trim());
+
+        return configurado;
     }
 }
