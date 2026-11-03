@@ -46,7 +46,8 @@ A aplicação permite:
 Esta API é o **dashboard B2B** da clínica veterinária parceira. O ciclo de vida dos dados é dividido entre as APIs da plataforma PetCare Hub:
 
 - **Pets, Tutores e Scores de Saúde** são expostos **apenas para leitura** nesta API. O cadastro, atualização e remoção desses recursos pertence à API Java (consumida pelo tutor através do app mobile), que é a fonte de verdade dos dados do animal e do seu tutor. Os Scores de Saúde são calculados pela API Java a partir das leituras IoT e gravados no banco Oracle compartilhado.
-- **Clínicas, Consultas e Alertas de Saúde** possuem **CRUD completo** nesta API, pois representam operações realizadas pela equipe da clínica no seu dia a dia (cadastrar uma clínica parceira, registrar uma consulta, abrir ou resolver um alerta).
+- **Consultas e Alertas de Saúde** possuem **CRUD completo** nesta API, pois representam operações realizadas pela equipe da clínica no seu dia a dia (registrar uma consulta, abrir ou resolver um alerta).
+- **Clínicas** são lidas e atualizadas aqui, mas não criadas. Esta API não mapeia `SENHA_HASH` de propósito — autenticação é responsabilidade exclusiva da API Java —, então uma clínica criada aqui nasceria sem senha, e clínica sem senha pode ser reivindicada por quem souber o e-mail e o CNPJ, que é público. O credenciamento é `POST /auth/cadastro-clinica` na API Java, onde a própria clínica define a senha e um admin aprova. A exclusão existe aqui, restrita ao perfil ADMIN.
 
 Essa separação garante que cada API tenha responsabilidade clara sobre o seu domínio e evita duplicação de regras de negócio entre Java e .NET.
 
@@ -454,17 +455,22 @@ Todos os endpoints seguem o padrão REST e estão documentados no Swagger.
 > (ver [Autenticação](#autenticação)). Isso não está repetido em cada tabela para não poluir —
 > vale para Clínicas, Pets, Consultas, Alertas de Saúde, Scores de Saúde, Tutores e Dashboard.
 
-### 🏥 Clínicas (CRUD completo)
+### 🏥 Clínicas (leitura, atualização e descredenciamento)
 
 | Método | Rota | Descrição |
 |---|---|---|
 | `GET`    | `/api/Clinicas`              | Lista as clínicas (paginado — ver [Paginação](#paginação-ordenação-e-filtros)) |
 | `GET`    | `/api/Clinicas/{id}`         | Busca uma clínica pelo ID |
-| `POST`   | `/api/Clinicas`              | Cria uma nova clínica |
-| `PUT`    | `/api/Clinicas/{id}`         | Atualiza uma clínica |
-| `DELETE` | `/api/Clinicas/{id}`         | Remove uma clínica (se não tiver pets vinculados) |
+| `PUT`    | `/api/Clinicas/{id}`         | Atualiza os dados de uma clínica (`400` se o novo CNPJ já pertencer a outra) |
+| `DELETE` | `/api/Clinicas/{id}`         | Descredencia uma clínica — **só ADMIN** (`403` para token de clínica), e `400` se ela ainda tiver pets vinculados |
 
-**Exemplo POST:**
+> **Não existe `POST /api/Clinicas`.** A rota responde `405`. O credenciamento é
+> `POST /auth/cadastro-clinica` na API Java, onde a clínica define a própria senha e é
+> aprovada por um admin em `PUT /admin/clinicas/{id}/ativar`. Para suspender o acesso sem
+> perder o histórico, existe `PUT /admin/clinicas/{id}/bloquear`, também no Java — o `DELETE`
+> daqui é a opção mais agressiva, porque apagar leva junto o vínculo dos pets.
+
+**Exemplo PUT:**
 
 ```json
 {
@@ -812,14 +818,17 @@ dotnet test
     caminho autorizado (`200`) e da confirmação de que `/health/live` continua público;
   - `HealthCheckTests` — cobre `/health`, `/health/live` e `/health/ready` separadamente,
     checando o `status` real (`Healthy`), não só "respondeu alguma coisa";
-  - `Clinica_CriarConsultarAtualizarExcluir_FluxoCompletoPersisteNoOracle` (em
-    `ClinicasControllerTests`) — fluxo de ponta a ponta real (create → get → update → get →
-    delete → get), conferindo o corpo de cada resposta e que a mudança realmente persistiu no
-    Oracle entre uma chamada HTTP e a seguinte (não só que o Create "parece" certo). A clínica
-    de teste usa um CNPJ gerado por timestamp e é sempre excluída no fim (inclusive se um assert
-    falhar no meio), pra não deixar lixo na base compartilhada da turma. O mesmo padrão
-    (criar → usar o id → excluir no `finally`) é usado em `DashboardControllerTests`, que antes
-    dependia de uma clínica de id fixo já existente na base.
+  - `Clinica_ConsultarAtualizarExcluir_PersisteNoOracle` (em `ClinicasControllerTests`) —
+    fluxo de ponta a ponta real (get → update → get → delete → get), conferindo o corpo de cada
+    resposta e que a mudança realmente persistiu no Oracle entre uma chamada HTTP e a seguinte.
+    Como não há mais `POST`, a clínica de teste é semeada pelo `DbContext`: arranjar estado é
+    trabalho do fixture, não de um endpoint que não deveria existir. Ela usa um CNPJ gerado por
+    timestamp e é sempre excluída no fim (inclusive se um assert falhar no meio), pra não deixar
+    lixo na base compartilhada da turma. O mesmo padrão é usado em `DashboardControllerTests`,
+    que antes dependia de uma clínica de id fixo já existente na base;
+  - `PostClinica_NaoExisteNestaApi_RetornaMethodNotAllowed` e
+    `DeleteClinica_TokenDeClinica_RetornaForbidden` — guardam as duas decisões acima: o cadastro
+    não voltou por acidente, e o descredenciamento continua restrito ao admin.
 
   Testes que exigem autenticação usam `factory.CreateAuthenticatedClient(role: "CLINICA")` —
   gera um JWT assinado com a mesma chave de teste que a API valida por padrão
