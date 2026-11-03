@@ -4,6 +4,12 @@ API RESTful desenvolvida em **.NET 9** para a disciplina **Advanced Business Dev
 
 A API representa o **dashboard B2B da clínica veterinária**, permitindo consultar informações clínicas, pets, alertas de saúde, consultas, scores e indicadores operacionais.
 
+**No ar em:** https://petcarehub-dotnet.onrender.com — a raiz abre o Swagger. Hospedada em
+container, com a mesma chave pública RSA da API Java, de onde vêm os tokens. Ver
+[Deploy (Docker e Render)](#deploy-docker-e-render).
+
+> O plano free dorme após ~15 min sem tráfego: o primeiro acesso pode levar ~50 s.
+
 ---
 
 ## Contexto do Projeto
@@ -380,6 +386,11 @@ O ASP.NET Core traduz `__` (dois sublinhados) no nome da variável para `:` na c
 | `PORT` | Não | A imagem usa `8080`; o Render injeta a porta dele e o entrypoint a respeita. |
 
 ### Configuração do serviço no Render
+
+O serviço publicado é o **`petcarehub-dotnet`** (https://petcarehub-dotnet.onrender.com),
+região Ohio, plano free, com `ConnectionStrings__DefaultConnection`, `Jwt__PublicKeyPem` e o
+Secret File `public_key.pem` reunidos em um Environment Group chamado `keys` — um grupo só
+precisa ser **vinculado** ao serviço, criá-lo não aplica nada sozinho.
 
 | Campo | Valor |
 |---|---|
