@@ -21,6 +21,9 @@ namespace PetCareHub.API;
 /// <summary>Ponto de entrada da API — configura DI, autenticação, observabilidade e o pipeline HTTP.</summary>
 public class Program
 {
+    /// <summary>Nome do esquema de segurança JWT exposto no Swagger.</summary>
+    private const string EsquemaJwt = "Bearer";
+
     /// <summary>Monta o host e inicia a aplicação.</summary>
     public static void Main(string[] args)
     {
@@ -118,7 +121,12 @@ public class Program
             {
                 Title = "🐾 PetCare Hub API",
                 Version = "v1",
-                Description = "API REST para gerenciamento de saúde de pets, consultas, alertas e indicadores clínicos",
+                Description = """
+                              API REST para gerenciamento de saúde de pets, consultas, alertas e indicadores clínicos.
+
+                              **Como autenticar:** chame `POST /auth/login` na API Java, copie o campo `token`
+                              da resposta e cole no botão **Authorize** acima — só o token, sem escrever "Bearer".
+                              """,
                 TermsOfService = new Uri("https://example.com/petcarehub/terms"),
                 Contact = new OpenApiContact
                 {
@@ -131,6 +139,34 @@ public class Program
                     Name = "MIT",
                     Url = new Uri("https://example.com/petcarehub/license")
                 }
+            });
+
+            // Sem isto o Swagger não exibe o botão Authorize. Todo controller desta API
+            // exige [Authorize] e não há nenhum AllowAnonymous, então a interface
+            // publicada fica sem como enviar o token e os endpoints respondem 401 — o
+            // mesmo problema que o SwaggerConfig do lado Java já resolve por lá.
+            options.AddSecurityDefinition(EsquemaJwt, new OpenApiSecurityScheme
+            {
+                Type = SecuritySchemeType.Http,
+                Scheme = "bearer",
+                BearerFormat = "JWT",
+                In = ParameterLocation.Header,
+                Name = "Authorization",
+                Description = "Token devolvido por POST /auth/login da API Java."
+            });
+
+            // Aplicado globalmente: esta API não expõe endpoint anônimo no Swagger, então
+            // não há rota pública em que o header atrapalhe.
+            options.AddSecurityRequirement(new OpenApiSecurityRequirement
+            {
+                [new OpenApiSecurityScheme
+                {
+                    Reference = new OpenApiReference
+                    {
+                        Type = ReferenceType.SecurityScheme,
+                        Id = EsquemaJwt
+                    }
+                }] = Array.Empty<string>()
             });
 
             var xmlFile = $"{Assembly.GetExecutingAssembly().GetName().Name}.xml";

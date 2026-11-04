@@ -76,17 +76,54 @@ ferramenta de monitoramento externa chama, sem credencial nenhuma).
 | Sem header `Authorization` | `401 Unauthorized` |
 | Token malformado, assinatura inválida ou expirado | `401 Unauthorized` |
 | Token válido, mas `role` diferente de `CLINICA` (ex.: `TUTOR`) | `403 Forbidden` |
+| Token válido com `role = CLINICA`, em `DELETE /api/Clinicas/{id}` | `403 Forbidden` (restrito ao `ADMIN`) |
 | Token válido com `role = CLINICA` | segue normalmente |
 
 ### Como conseguir um token para testar
 
-1. Suba a API Java localmente (ela cria a clínica de exemplo automaticamente em banco vazio —
-   ver o `DataLoader` no README do Java) ou use as credenciais de uma clínica já cadastrada no
-   Oracle compartilhado.
-2. Chame `POST /auth/login` na API Java (Swagger em `/swagger-ui.html`) com o e-mail/senha da
-   clínica.
-3. Use o `token` da resposta como Bearer nas chamadas ao Swagger desta API .NET (botão
-   **"Authorize"**).
+São dois passos, em duas abas: o token sai da API Java e é usado aqui.
+
+**1. Pegue o token na API Java.** Abra [`POST /auth/login` no Swagger do Java][java-login] — o
+link já abre na operação certa — e envie e-mail e senha de uma clínica com acesso `ATIVO`:
+
+```json
+{ "email": "contato@exemplo.test", "password": "a-senha-da-clinica" }
+```
+
+> O campo é **`password`**, não `senha`. É o único endpoint da API Java que foge do padrão.
+
+Copie o campo `token` da resposta.
+
+**2. Autorize aqui.** Na [raiz desta API](https://petcarehub-dotnet.onrender.com) — a raiz abre
+o Swagger —, clique em **Authorize**, cole só o token (sem escrever `Bearer`) e confirme.
+
+[java-login]: https://petcare-hub-gokt.onrender.com/swagger-ui/index.html#/auth-controller/login
+
+### Roteiro de teste no Swagger
+
+Esta API **lê** dados que já existem no Oracle, carregados pela disciplina de Database, e eles
+estão distribuídos entre as clínicas previamente cadastradas. Uma clínica criada agora não tem
+pet, consulta nem alerta vinculado, e todos os endpoints dela respondem lista vazia — então use
+um `clinicaId` com conteúdo. A clínica `10` é a mais completa.
+
+| # | Chamada | O que demonstra |
+|---|---|---|
+| 1 | `GET /api/Dashboard/clinicas/10` | Indicadores consolidados da clínica |
+| 2 | `GET /api/Pets/clinica/10` | Pets vinculados |
+| 3 | `GET /api/AlertasSaude/clinica/10` | Alertas de saúde em aberto |
+| 4 | `GET /api/Dashboard/clinicas/10/pets-em-risco` | Regra de negócio sobre o score |
+| 5 | `GET /api/AlertasSaude?nivelAlerta=ALTO&Page=1&Size=5` | Filtro, paginação e ordenação |
+| 6 | `GET /api/Clinicas` | Links HATEOAS no corpo da resposta |
+| 7 | `DELETE /api/Clinicas/10` | `403` — o controle de acesso por papel funcionando |
+
+O passo 7 recusar é o comportamento correto, não uma falha: descredenciar clínica é restrito ao
+perfil `ADMIN`.
+
+> **Endpoints respondendo `401` no meio do teste?** O token expirou — ele vale 30 minutos.
+> Refaça o passo 1.
+>
+> **Primeira chamada lenta?** As duas APIs hibernam no plano gratuito do Render e levam até
+> ~1 minuto para acordar. Vale para o Swagger do Java também.
 
 ### Configuração da chave pública
 
