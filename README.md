@@ -84,15 +84,15 @@ ferramenta de monitoramento externa chama, sem credencial nenhuma).
 São dois passos, em duas abas: o token sai da API Java e é usado aqui.
 
 **1. Pegue o token na API Java.** Abra [`POST /auth/login` no Swagger do Java][java-login] — o
-link já abre na operação certa — e envie e-mail e senha de uma clínica com acesso `ATIVO`:
+link já abre na operação certa — e envie a conta de demonstração da clínica:
 
 ```json
-{ "email": "contato@exemplo.test", "password": "a-senha-da-clinica" }
+{ "email": "contato@vidapet.com", "password": "12345678" }
 ```
 
 > O campo é **`password`**, não `senha`. É o único endpoint da API Java que foge do padrão.
 
-Copie o campo `token` da resposta.
+A resposta traz `role: CLINICA` e `clinicaId: 10`. Copie o campo `token`.
 
 **2. Autorize aqui.** Na [raiz desta API](https://petcarehub-dotnet.onrender.com) — a raiz abre
 o Swagger —, clique em **Authorize**, cole só o token (sem escrever `Bearer`) e confirme.
@@ -106,18 +106,22 @@ estão distribuídos entre as clínicas previamente cadastradas. Uma clínica cr
 pet, consulta nem alerta vinculado, e todos os endpoints dela respondem lista vazia — então use
 um `clinicaId` com conteúdo. A clínica `10` é a mais completa.
 
-| # | Chamada | O que demonstra |
-|---|---|---|
-| 1 | `GET /api/Dashboard/clinicas/10` | Indicadores consolidados da clínica |
-| 2 | `GET /api/Pets/clinica/10` | Pets vinculados |
-| 3 | `GET /api/AlertasSaude/clinica/10` | Alertas de saúde em aberto |
-| 4 | `GET /api/Dashboard/clinicas/10/pets-em-risco` | Regra de negócio sobre o score |
-| 5 | `GET /api/AlertasSaude?nivelAlerta=ALTO&Page=1&Size=5` | Filtro, paginação e ordenação |
-| 6 | `GET /api/Clinicas` | Links HATEOAS no corpo da resposta |
-| 7 | `DELETE /api/Clinicas/10` | `403` — o controle de acesso por papel funcionando |
+| # | Chamada | O que demonstra | Esperado |
+|---|---|---|---|
+| 1 | `GET /api/Dashboard/clinicas/10` | Indicadores consolidados da clínica | `200` |
+| 2 | `GET /api/Pets/clinica/10` | Pets vinculados | `200`, 2 pets |
+| 3 | `GET /api/AlertasSaude/clinica/10` | Alertas de saúde em aberto | `200`, 5 alertas |
+| 4 | `GET /api/Dashboard/clinicas/10/pets-em-risco` | Regra de negócio sobre o score | `200`, 1 pet |
+| 5 | `GET /api/AlertasSaude?nivelAlerta=ALTO&Page=1&Size=5` | Filtro, paginação e ordenação | `200`, `totalElements: 2` |
+| 6 | `GET /api/Clinicas/10` | HATEOAS: `self`, `collection`, `update` e `delete` | `200` |
+| 7 | `DELETE /api/Clinicas/10` | Controle de acesso por papel | `403` |
 
 O passo 7 recusar é o comportamento correto, não uma falha: descredenciar clínica é restrito ao
-perfil `ADMIN`.
+perfil `ADMIN`. E repare no passo 6: os `href` saem com `https`, não `http`, mesmo a aplicação
+rodando atrás do proxy do Render.
+
+`GET /api/Clinicas` sem id devolve só a própria clínica do token — o dashboard de uma clínica
+não enxerga a carteira das outras.
 
 > **Endpoints respondendo `401` no meio do teste?** O token expirou — ele vale 30 minutos.
 > Refaça o passo 1.
