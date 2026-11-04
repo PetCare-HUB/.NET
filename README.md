@@ -423,6 +423,7 @@ O ASP.NET Core traduz `__` (dois sublinhados) no nome da variável para `:` na c
 | `Jwt__PublicKeyPem` | **Sim em produção** | A API sobe saudável e recusa **todo** token real com `401`, porque cai na chave de desenvolvimento commitada. Um `WRN` no log avisa na subida. Aceita o PEM direto ou `file:/etc/secrets/public_key.pem` (Secret File), e precisa ser a mesma chave do `RSA_PUBLIC_KEY` do serviço Java. |
 | `ConnectionStrings__Mongo` | Não | `/health/ready` reporta `mongodb` como `Degraded` (HTTP 200) e o resto da API continua servindo. |
 | `Mongo__Database` | Não | Usa `petcarehub`. |
+| `JavaApi__HealthUrl` | Não | Usa a URL do `appsettings.json` (o `/keepalive` da API Java publicada). Se o alvo não responder, `/health/ready` reporta `api-java` como `Degraded` (HTTP 200). |
 | `ASPNETCORE_ENVIRONMENT` | Não | A imagem já define `Production`. |
 | `PORT` | Não | A imagem usa `8080`; o Render injeta a porta dele e o entrypoint a respeita. |
 
@@ -816,11 +817,18 @@ estão OK?) em três endpoints:
 | Rota | O que verifica | Quando usar |
 |---|---|---|
 | `GET /health/live` | Só o próprio processo (`self`) — nunca toca no Oracle | Uma orquestração decidindo se precisa reiniciar o processo |
-| `GET /health/ready` | Oracle e MongoDB | Decidir se a API está pronta para receber tráfego real |
-| `GET /health` | Processo, Oracle e MongoDB | Compatibilidade / visão geral rápida |
+| `GET /health/ready` | Oracle, MongoDB e a API Java | Decidir se a API está pronta para receber tráfego real |
+| `GET /health` | Processo, Oracle, MongoDB e a API Java | Compatibilidade / visão geral rápida |
 
-Oracle permanece como fonte das leituras IoT detalhadas. MongoDB armazena os documentos
-resumidos usados como contexto recuperável pela IA.
+São **três tipos de dependência**, não dois: os bancos e um serviço externo.
+
+- **Oracle** — fonte de todo o dado relacional, incluindo as leituras IoT detalhadas.
+- **MongoDB** — documentos resumidos usados como contexto recuperável pela IA.
+- **API Java** (`api-java`) — o serviço externo. Ela emite os tokens que esta API valida e
+  processa o dado que este dashboard serve, então a indisponibilidade dela é uma dependência
+  real do produto. Como a API Java não expõe Actuator, o alvo é o endpoint público
+  `/keepalive`. O endereço vem de `JavaApi:HealthUrl` (ver `appsettings.json`), nunca fixo no
+  código.
 
 Formato de resposta (igual nos três endpoints):
 
@@ -849,22 +857,40 @@ Formato de resposta (igual nos três endpoints):
       "description": null,
       "duration": "00:00:00.0100000",
       "error": null
+    },
+    {
+      "name": "api-java",
+      "status": "Healthy",
+      "description": null,
+      "duration": "00:00:00.2616873",
+      "error": null
     }
   ]
 }
 ```
 
-Os dois bancos não pesam igual, e os endpoints refletem isso:
+As três dependências não pesam igual, e os endpoints refletem isso:
 
 | Dependência fora | `/health` e `/health/ready` | Efeito na API |
 |---|---|---|
 | **Oracle** | `Unhealthy` (HTTP 503) | Nada responde: é de lá que vem todo o dado relacional |
 | **MongoDB** | `Degraded` (HTTP 200) | Só as rotas `/api/contexto-ia/...` param; o resto continua servindo |
+| **API Java** | `Degraded` (HTTP 200) | Tokens já emitidos continuam valendo e todo o dado relacional continua sendo servido; o que para é a emissão de novos tokens, que não acontece aqui |
 
-O MongoDB guarda apenas os resumos de contexto da IA, então responder 503 por causa dele
-afirmaria que a API inteira está fora — o que não é verdade. `Degraded` responde 200 e mostra
-no corpo qual check caiu: o Mongo continua sendo verificado e reportado, só não derruba o
-grupo inteiro junto.
+Só o Oracle derruba o grupo. O Mongo guarda apenas os resumos de contexto da IA, e a API Java
+é um serviço externo — responder 503 por causa de qualquer um dos dois afirmaria que esta API
+inteira está fora, o que não é verdade. `Degraded` responde 200 e mostra no corpo qual check
+caiu: a dependência continua sendo verificada e reportada, só não derruba o grupo junto.
+
+Verificado com a API Java inacessível:
+
+```json
+{ "status": "Degraded", "checks": [
+  { "name": "oracle-db", "status": "Healthy" },
+  { "name": "mongodb",   "status": "Healthy" },
+  { "name": "api-java",  "status": "Degraded",
+    "error": "Nenhuma conexão pôde ser feita porque a máquina de destino as recusou ativamente." } ] }
+```
 
 `/health/live` continua verificando apenas se o processo está de pé.
 
@@ -954,10 +980,10 @@ dotnet test
     caminho autorizado (`200`) e da confirmação de que `/health/live` continua público;
   - `HealthCheckTests` — cobre `/health`, `/health/live` e `/health/ready` separadamente,
     checando o `status` real (`Healthy`), não só "respondeu alguma coisa". Também garante a
-    composição de cada grupo: o readiness lista os dois serviços externos (`oracle-db` e
-    `mongodb`) e o liveness não lista nenhum dos dois — é essa separação que permite apontar
-    o health check do Render para `/health/live` sem que uma oscilação da FIAP derrube o
-    deploy;
+    composição de cada grupo: o readiness lista as três dependências externas (`oracle-db`,
+    `mongodb` e `api-java`) e o liveness não lista nenhuma delas — é essa separação que
+    permite apontar o health check do Render para `/health/live` sem que uma oscilação da
+    FIAP derrube o deploy;
   - `Clinica_ConsultarAtualizarExcluir_PersisteNoOracle` (em `ClinicasControllerTests`) —
     fluxo de ponta a ponta real (get → update → get → delete → get), conferindo o corpo de cada
     resposta e que a mudança realmente persistiu no Oracle entre uma chamada HTTP e a seguinte.

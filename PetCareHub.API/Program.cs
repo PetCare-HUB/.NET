@@ -86,6 +86,13 @@ public class Program
                 .AddRuntimeInstrumentation()
                 .AddConsoleExporter());
 
+        // Em configuração, não no código: o endereço muda entre rodar local (onde a
+        // API Java sobe em localhost) e o ambiente publicado. Não é segredo — é uma
+        // URL pública —, então o valor padrão fica versionado no appsettings.json.
+        var urlSaudeApiJava = builder.Configuration["JavaApi:HealthUrl"]
+            ?? throw new InvalidOperationException(
+                "JavaApi:HealthUrl não configurado: o health check da API Java não tem alvo.");
+
         builder.Services
             .AddHealthChecks()
             // Liveness: só confirma que o processo da API está de pé, sem tocar em
@@ -94,10 +101,10 @@ public class Program
                 "self",
                 () => HealthCheckResult.Healthy("API em execução."),
                 tags: new[] { "live" })
-            // Readiness: as duas dependências externas que esta API realmente chama —
-            // o Oracle, de onde vem todo o dado relacional, e o MongoDB, onde ficam os
-            // resumos de contexto da IA. Nenhuma outra API ou fila de terceiro é
-            // consumida aqui, então não há mais nada a checar neste grupo.
+            // Readiness: as dependências externas desta API — o Oracle, de onde vem
+            // todo o dado relacional; o MongoDB, onde ficam os resumos de contexto da
+            // IA; e a API Java, que emite os tokens validados aqui e processa o dado
+            // que este dashboard serve.
             .AddOracle(
                 builder.Configuration.GetConnectionString("DefaultConnection")!,
                 name: "oracle-db",
@@ -113,7 +120,23 @@ public class Program
                 name: "mongodb",
                 failureStatus: HealthStatus.Degraded,
                 timeout: TimeSpan.FromSeconds(5),
-                tags: new[] { "ready", "db", "mongodb" });
+                tags: new[] { "ready", "db", "mongodb" })
+            // Serviço externo, não banco — a rubrica pede as duas coisas separadamente
+            // ("conectividade com o banco de dados (Oracle/MongoDB) e disponibilidade
+            // de serviços externos"), e o Oracle e o Mongo cobrem só a primeira.
+            //
+            // A API Java não expõe Actuator, então o alvo é o /keepalive: público,
+            // leve e já liberado no SecurityConfig de lá.
+            //
+            // Degraded pela mesma razão do Mongo: com o Java hibernando, esta API
+            // continua servindo todo o dado relacional e o Swagger, então 503 no
+            // readiness afirmaria que nada funciona.
+            .AddUrlGroup(
+                new Uri(urlSaudeApiJava),
+                name: "api-java",
+                failureStatus: HealthStatus.Degraded,
+                timeout: TimeSpan.FromSeconds(5),
+                tags: new[] { "ready", "external", "api" });
 
         builder.Services.AddSwaggerGen(options =>
         {

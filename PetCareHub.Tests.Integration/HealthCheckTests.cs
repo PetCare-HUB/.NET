@@ -23,18 +23,23 @@ public class HealthCheckTests(PetCareHubApiFactory factory)
         Assert.Contains("\"status\":\"Healthy\"", conteudo);
         Assert.DoesNotContain("oracle-db", conteudo);
         Assert.DoesNotContain("mongodb", conteudo);
+        Assert.DoesNotContain("api-java", conteudo);
     }
 
     [Fact]
-    public async Task GetHealthReady_ChecaServicosExternos_IncluiOracleEMongodb()
+    public async Task GetHealthReady_ChecaDependenciasExternas_IncluiOracleMongodbEApiJava()
     {
-        // O readiness precisa cobrir as dependências externas, não só o banco relacional:
-        // foi a ausência de um segundo serviço externo que a correção da Sprint 3 apontou.
-        // Este teste trava isso — remover ou renomear o check do MongoDB passa a quebrar a
-        // suíte em vez de passar despercebido.
+        // A rubrica pede três coisas distintas no health check: a saúde da API, a
+        // conectividade com o banco (Oracle/MongoDB) e a disponibilidade de serviços
+        // externos. Oracle e Mongo cobrem só a segunda — os dois são banco. Foi a falta
+        // da terceira que a correção da Sprint 3 apontou ("não há check de serviço
+        // externo"), e quem a cobre é o "api-java".
         //
-        // A asserção é sobre o check existir e ser consultado, não sobre o MongoDB estar de
-        // pé: ele é dependência opcional (failureStatus Degraded), então exigir "Healthy"
+        // Este teste trava as três: remover ou renomear qualquer um dos checks passa a
+        // quebrar a suíte em vez de passar despercebido.
+        //
+        // A asserção é sobre o check existir e ser consultado, não sobre a dependência
+        // estar de pé: Mongo e API Java são Degraded-on-failure, então exigir "Healthy"
         // aqui tornaria o teste um verificador de ambiente, não da configuração da API.
 
         // Act
@@ -44,6 +49,7 @@ public class HealthCheckTests(PetCareHubApiFactory factory)
         // Assert
         Assert.Contains("\"name\":\"oracle-db\"", conteudo);
         Assert.Contains("\"name\":\"mongodb\"", conteudo);
+        Assert.Contains("\"name\":\"api-java\"", conteudo);
     }
 
     [Fact]
@@ -64,7 +70,7 @@ public class HealthCheckTests(PetCareHubApiFactory factory)
     }
 
     [Fact]
-    public async Task GetHealth_Combinado_IncluiSelfOracleEMongodb()
+    public async Task GetHealth_Combinado_IncluiSelfOracleMongodbEApiJava()
     {
         // Act
         var response = await _client.GetAsync("/health");
@@ -75,5 +81,6 @@ public class HealthCheckTests(PetCareHubApiFactory factory)
         Assert.Contains("\"name\":\"self\"", conteudo);
         Assert.Contains("\"name\":\"oracle-db\"", conteudo);
         Assert.Contains("\"name\":\"mongodb\"", conteudo);
+        Assert.Contains("\"name\":\"api-java\"", conteudo);
     }
 }
